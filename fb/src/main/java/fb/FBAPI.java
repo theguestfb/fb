@@ -1,5 +1,8 @@
 package fb;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -8,19 +11,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 @Path("")
 public class FBAPI {
-	
-	/**
-	 * Gets an episode by its id 
-	 * @param id id of episode (1-7-4-...-3)
-	 * @return HTML episode
-	 */
-	@GET
-	@Produces(MediaType.TEXT_HTML)
-	public Response getRoot() {
-		return Response.ok(Stuff.getHTML("1")).build();
-	}
 	
 	/**
 	 * Gets an episode by its id, as a JSON object
@@ -53,6 +46,37 @@ public class FBAPI {
 	}
 	
 	/**
+	 * Gets the root episode
+	 * @param id id of episode (1-7-4-...-3)
+	 * @return HTML episode
+	 */
+	@GET
+	@Produces(MediaType.TEXT_HTML)
+	public Response getRoot() {
+		try {
+			return Response.temporaryRedirect(new URI("/fb/get/1")).build();
+		} catch (URISyntaxException e) {
+			return get("1");
+		}
+	}
+	
+	/**
+	 * Gets the root episode 
+	 * @param id id of episode (1-7-4-...-3)
+	 * @return HTML episode
+	 */
+	@GET
+	@Path("get")
+	@Produces(MediaType.TEXT_HTML)
+	public Response getGet() {
+		try {
+			return Response.temporaryRedirect(new URI("/fb/get/1")).build();
+		} catch (URISyntaxException e) {
+			return get("1");
+		}
+	}
+	
+	/**
 	 * Gets an episode by its id 
 	 * @param id id of episode (1-7-4-...-3)
 	 * @return HTML episode
@@ -67,7 +91,7 @@ public class FBAPI {
 	/**
 	 * Returns the form for adding new episodes
 	 * @param id id of parent episode
-	 * @return HTML form
+	 * @return HTML form to add episode
 	 */
 	@GET
 	@Path("add/{id}")
@@ -82,7 +106,7 @@ public class FBAPI {
 	 * @param title title of new episode
 	 * @param body body of new episode
 	 * @param author author of new episode
-	 * @return HTML success page
+	 * @return HTML success page with link to new episode
 	 */
 	@POST
 	@Path("addpost/{id}")
