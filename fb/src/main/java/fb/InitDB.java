@@ -1,20 +1,18 @@
 package fb;
 
-import java.util.Arrays;
-import java.util.Random;
-
 import org.hibernate.Session;
 
 public class InitDB {
 
-	/*public static void main(String[] args) {
+	/*public static void main(String[] args) throws Exception {
 		
 		System.out.println("Making parent episode");
 		
 		FBEpisode parent = new FBEpisode();
-		parent.setTitle("This is the root episode");
-		parent.setBody("This is the body of the root episode");
-		parent.setAuthor("Phoenix");
+		parent.setTitle("And So It Begins...");
+		parent.setBody(Stuff.readFile("ep1.txt"));
+		parent.setLink("");
+		parent.setAuthor("Zach");
 		parent.setId("1");
 		
 		Session session = DB.getSession();
@@ -23,9 +21,10 @@ public class InitDB {
 		session.getTransaction().commit();
 		
 		FBEpisode child = new FBEpisode();
-		child.setTitle("This is a child episode");
-		child.setBody("This is the body of a child episode");
-		child.setAuthor("Phoenix");
+		child.setTitle("Enter the Bitch");
+		child.setLink("episode two");
+		child.setBody(Stuff.readFile("ep2.txt"));
+		child.setAuthor("Jezzi_Belle_Stewart");
 		
 		session = DB.getSession();
 		session.beginTransaction();
