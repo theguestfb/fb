@@ -11,7 +11,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 @Path("")
 public class FBAPI {
 	
@@ -25,7 +24,7 @@ public class FBAPI {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getapi(@PathParam("id") String id) {
 		String r = Stuff.getAPI(id);
-		return ((r==null)?Response.ok("not found").status(402):Response.ok(r)).build();
+		return ((r==null)?Response.ok("not found").status(404):Response.ok(r)).build();
 	}
 	
 	/**
@@ -46,8 +45,7 @@ public class FBAPI {
 	}
 	
 	/**
-	 * Gets the root episode
-	 * @param id id of episode (1-7-4-...-3)
+	 * Redirects to the root episode 
 	 * @return HTML episode
 	 */
 	@GET
@@ -61,8 +59,7 @@ public class FBAPI {
 	}
 	
 	/**
-	 * Gets the root episode 
-	 * @param id id of episode (1-7-4-...-3)
+	 * Redirects to the root episode 
 	 * @return HTML episode
 	 */
 	@GET
