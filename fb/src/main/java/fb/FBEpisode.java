@@ -5,8 +5,6 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
@@ -19,9 +17,9 @@ import javax.persistence.Table;
 public class FBEpisode {
 	
 	@Id
-	@GeneratedValue(strategy=GenerationType.AUTO)
-	private Long id;
-	
+	@Column( length = 2048 )
+	private String id;
+		
 	private String title;
 	
 	private String author;
@@ -33,15 +31,14 @@ public class FBEpisode {
 	private List<FBEpisode> children = new ArrayList<>();
 	
 	@Lob
-	@Column( length = 100000)
 	private String body;
 	
 	// The following constructor, getters, and setters are required for JPA persistence
 	public FBEpisode() {} 
-	public Long getId() {
+	public String getId() {
 		return id;
 	}
-	public void setId(Long id) {
+	public void setId(String id) {
 		this.id = id;
 	}
 	public String getTitle() {

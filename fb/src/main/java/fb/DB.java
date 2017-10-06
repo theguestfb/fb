@@ -1,5 +1,7 @@
 package fb;
 
+import java.util.Calendar;
+
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -19,10 +21,68 @@ public class DB {
 		session = sessionFactory.openSession();
 	}
 
-	public static SessionFactory getSessionFactory() {
+	static SessionFactory getSessionFactory() {
 		return sessionFactory;
 	}
-	public static Session getSession() {
+	static Session getSession() {
 		return session;
+	}
+	
+	/**
+	 * Adds an episode to the story
+	 * @param id id of parent episode
+	 * @param title title of new episode
+	 * @param body body of new episode
+	 * @param author author of new episode
+	 * @return HTML success page
+	 */
+	static FBEpisode addEp(String id, String title, String body, String author) {
+		Session session = DB.getSession();
+		session.beginTransaction();
+		FBEpisode parent = session.get(FBEpisode.class, id);
+		FBEpisode child;
+		if (parent == null) child = null;
+		else {
+			child = new FBEpisode();
+			child.setTitle(title);
+			child.setBody(body);
+			child.setAuthor(author);
+			child.setParent(parent);
+			child.setId(id+"-"+(1+parent.getChildren().size()));
+			parent.getChildren().add(child);
+			session.save(child);
+			session.merge(parent);
+			log(String.format("New: <%s> %s", author, title));
+		}
+		session.getTransaction().commit();
+		return child;
+	}
+	
+	/**
+	 * Retrieves an episode from the db by id
+	 * @param id
+	 * @return
+	 */
+	static FBEpisode getEp(String id) {
+		Session session = DB.getSession();
+		session.beginTransaction();
+		FBEpisode ep = session.get(FBEpisode.class, id);
+		session.getTransaction().commit();
+		return ep;
+	}
+	
+	/**
+	 * Prepends message with the current date, and writes it to stdout
+	 * @param message
+	 */
+	private static void log(String message) {
+		int y = Calendar.getInstance().get(Calendar.YEAR);
+		int mo = Calendar.getInstance().get(Calendar.MONTH);
+		int d = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+		int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+		int mi = Calendar.getInstance().get(Calendar.MINUTE);
+		int s = Calendar.getInstance().get(Calendar.SECOND);
+		System.out.printf("%04d-%02d-%02d %02d:%02d:%02d %s%n", y, mo, d, h, mi, s, message);
+
 	}
 }
