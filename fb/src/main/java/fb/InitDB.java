@@ -2,9 +2,10 @@ package fb;
 
 import org.hibernate.Session;
 
-public class Main {
+public class InitDB {
 
 	/*public static void main(String[] args) {
+		
 		System.out.println("Making parent episode");
 		
 		FBEpisode parent = new FBEpisode();
@@ -12,7 +13,7 @@ public class Main {
 		parent.setBody("This is the body of the root episode");
 		parent.setAuthor("Phoenix");
 		
-		Session session = HibernateUtil.getSession();
+		Session session = DB.getSession();
 		session.beginTransaction();
 		Long parentID = (Long) session.save(parent);
 		session.getTransaction().commit();
@@ -20,7 +21,7 @@ public class Main {
 		
 		System.out.println("Root ID: " + parentID);
 		
-		HibernateUtil.getSessionFactory().close();
+		DB.getSessionFactory().close();
 		System.out.println("Fin");
 	}*/
 }

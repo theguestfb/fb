@@ -18,12 +18,11 @@ public class FBAPI {
 	private static final String storyDefault = "<html><head><title>Fiction Branches</title></head><body><h1>$TITLE</h1><h3>Author: $AUTHOR</h3><p><a href=$PARENTID>Go back</a></p><hr/><p>$BODY</p><hr/><p>$CHILDREN</p><hr/><p><a href=../add/$ID>Add a new episode</a></p></body></html>";
 	private static final String formDefault = "<html><head><title>Fiction Branches</title></head><body><h1>Add to '$TITLE'</h1><form action=\"../addapi/$ID\" method=\"post\"><p>Title: <input type=\"text\" name=\"title\" /></p><p>Body: <br/><textarea name=\"body\" rows=\"40\" cols=\"1000\"></textarea></p><p>Your name:<input type=\"text\" name=\"author\"/></p><input type=\"submit\" value=\"Submit\"/></form></body></html>";
 	private static final String successDefault = "<html><head><title>Fiction Branches</title></head><body><h1>Success!</h1><p><a href=../get/$ID>View your new episode</a></p></body></html>";
-
 	
 	@GET
 	@Path("get/{id}")
 	public Response get(@PathParam("id") Long id) {
-		Session session = HibernateUtil.getSession();
+		Session session = DB.getSession();
 		session.beginTransaction();
 		FBEpisode ep = session.get(FBEpisode.class, id);
 		Response response;
@@ -65,7 +64,7 @@ public class FBAPI {
 	@GET
 	@Path("add/{id}")
 	public Response add(@PathParam("id") Long id) {
-		Session session = HibernateUtil.getSession();
+		Session session = DB.getSession();
 		session.beginTransaction();
 		FBEpisode ep = session.get(FBEpisode.class, id);
 		Response response;
@@ -84,7 +83,7 @@ public class FBAPI {
 	@POST
 	@Path("addapi/{id}")
 	public Response add(@PathParam("id") Long id, @FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author) {
-		Session session = HibernateUtil.getSession();
+		Session session = DB.getSession();
 		session.beginTransaction();
 		FBEpisode parent = session.get(FBEpisode.class, id);
 		Response response;
