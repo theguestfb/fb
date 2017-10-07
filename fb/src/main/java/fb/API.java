@@ -22,7 +22,7 @@ public class API {
 	 */
 	@GET
 	@Path("getapi/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
 	public Response getapi(@PathParam("id") String id) {
 		String r = Story.getAPI(id);
 		return ((r==null)?Response.ok("not found").status(404):Response.ok(r)).build();
@@ -40,7 +40,7 @@ public class API {
 	 */
 	@POST
 	@Path("addapi")
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
 	public Response addapi(@FormParam("ep") String ep) {
 		return Response.ok(Story.addAPI(ep)).build();
 	}
@@ -50,7 +50,7 @@ public class API {
 	 * @return HTML episode
 	 */
 	@GET
-	@Produces(MediaType.TEXT_HTML)
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getRoot() {
 		try {
 			return Response.temporaryRedirect(new URI("/fb/get/1")).build();
@@ -65,7 +65,7 @@ public class API {
 	 */
 	@GET
 	@Path("get")
-	@Produces(MediaType.TEXT_HTML)
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getGet() {
 		try {
 			return Response.temporaryRedirect(new URI("/fb/get/1")).build();
@@ -81,7 +81,7 @@ public class API {
 	 */
 	@GET
 	@Path("get/{id}")
-	@Produces(MediaType.TEXT_HTML)
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response get(@PathParam("id") String id) {
 		return Response.ok(Story.getHTML(id)).build();
 	}
@@ -93,7 +93,7 @@ public class API {
 	 */
 	@GET
 	@Path("add/{id}")
-	@Produces(MediaType.TEXT_HTML)
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response add(@PathParam("id") String id) {
 		return Response.ok(Story.addForm(id)).build();
 	}
@@ -108,7 +108,7 @@ public class API {
 	 */
 	@POST
 	@Path("addpost/{id}")
-	@Produces(MediaType.TEXT_HTML)
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response addpost(@PathParam("id") String id, @FormParam("link") String link, @FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author) {
 		return Response.ok(Story.addpost(id, link, title, body, author)).build();
 	}
