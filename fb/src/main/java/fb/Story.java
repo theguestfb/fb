@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import com.google.gson.Gson;
+import com.google.common.html.HtmlEscapers;
 
 import fb.db.DB;
 import fb.db.DBEpisode;
@@ -52,10 +53,10 @@ public class Story {
 				sb.append("<p><a href=" + child.getId() + ">" + child.getLink() + "</a></p>");
 			}
 			return storyDefault
-					.replace("$TITLE", ep.getTitle())
-					.replace("$BODY", formatBody(ep.getBody()))
-					.replace("$AUTHOR", ep.getAuthor())
-					.replace("$PARENTID", (ep.getParent() == null)?(""):(ep.getParent().getId()))
+					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
+					.replace("$BODY", formatBody(HtmlEscapers.htmlEscaper().escape(ep.getBody())))
+					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
+					.replace("$PARENTID", (ep.getParent() == null)?(""):(HtmlEscapers.htmlEscaper().escape(ep.getParent().getId())))
 					.replace("$ID", id)
 					.replace("$CHILDREN", sb.toString());
 		}
@@ -85,13 +86,8 @@ public class Story {
 	static String addAPI(String ep) {
 		JsonEpisode jsonChild = new Gson().fromJson(ep, JsonEpisode.class);
 		
-		StringBuilder errorString = new StringBuilder();
-		if (jsonChild.getLink().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
-		if (jsonChild.getTitle().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
-		if (jsonChild.getBody().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
-		if (jsonChild.getAuthor().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
-
-		if (errorString.length() > 0) return errorString.toString();
+		String errors = checkEpisode(jsonChild.getLink(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
+		if (errors != null) return errors;
 		
 		DBEpisode child = DB.addEp(jsonChild.getId(), jsonChild.getLink(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
 		if (child == null) return null;
@@ -107,12 +103,13 @@ public class Story {
 	 * @return HTML success page
 	 */
 	static String addpost(String id, String link, String title, String body, String author) {
-		StringBuilder emptyErrors = new StringBuilder();
-		if (link.trim().length() == 0) emptyErrors.append("Link text cannot be empty<br/>");
-		if (title.trim().length() == 0) emptyErrors.append("Title cannot be empty<br/>");
-		if (body.trim().length() == 0) emptyErrors.append("Body cannot be empty<br/>");
-		if (author.trim().length() == 0) emptyErrors.append("Author cannot be empty<br/>");
-		if (emptyErrors.length() > 0) return failureDefault.replace("$REASON", emptyErrors.toString());
+		link = link.trim();
+		title = title.trim();
+		body = body.trim();
+		author = author.trim();
+		
+		String errors = checkEpisode(link, title, body, author);
+		if (errors != null) return failureDefault.replace("$REASON", errors);
 		
 		DBEpisode child = DB.addEp(id, link, title, body, author);
 		if (child == null) return failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
@@ -121,6 +118,22 @@ public class Story {
 	}
 	
 	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	
+	private static String checkEpisode(String link, String title, String body, String author) {
+		StringBuilder errors = new StringBuilder();
+		if (link.length() == 0) errors.append("Link text cannot be empty<br/>");
+		if (title.length() == 0) errors.append("Title cannot be empty<br/>");
+		if (body.length() == 0) errors.append("Body cannot be empty<br/>");
+		if (author.length() == 0) errors.append("Author cannot be empty<br/>");
+		
+		if (link.length() > 255) errors.append("Link text cannot be longer than 255 (" + link.length() + ")<br/>");
+		if (title.length() > 255) errors.append("Title cannot be longer than 255 (" + title.length() + ")<br/>");
+		if (body.length() > 100000) errors.append("Body cannot be longer than 100000 (" + body.length() + ")<br/>");
+		if (author.length() > 255) errors.append("Author cannot be longer than 255 (" + author.length() + ")<br/>");
+		if (errors.length() > 0) return errors.toString();
+		
+		return (errors.length() > 0) ? errors.toString() : null;
+	}
 	
 	public static String readFile(String path) {
 		try {
