@@ -1,4 +1,4 @@
-package fb;
+package fb.db;
 
 import java.util.Calendar;
 
@@ -12,8 +12,7 @@ public class DB {
 	private static Session session;
 	static {
 		Configuration configuration = new Configuration().configure();
-		
-		configuration.addAnnotatedClass(FBEpisode.class);
+		configuration.addAnnotatedClass(DBEpisode.class);	
 		
 		StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
 				.applySettings(configuration.getProperties());
@@ -36,15 +35,16 @@ public class DB {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	static FBEpisode addEp(String id, String title, String body, String author) {
+	public static DBEpisode addEp(String id, String link, String title, String body, String author) {
 		Session session = DB.getSession();
 		session.beginTransaction();
-		FBEpisode parent = session.get(FBEpisode.class, id);
-		FBEpisode child;
+		DBEpisode parent = session.get(DBEpisode.class, id);
+		DBEpisode child;
 		if (parent == null) child = null;
 		else {
-			child = new FBEpisode();
+			child = new DBEpisode();
 			child.setTitle(title);
+			child.setLink(link);
 			child.setBody(body);
 			child.setAuthor(author);
 			child.setParent(parent);
@@ -63,10 +63,10 @@ public class DB {
 	 * @param id
 	 * @return
 	 */
-	static FBEpisode getEp(String id) {
+	public static DBEpisode getEp(String id) {
 		Session session = DB.getSession();
 		session.beginTransaction();
-		FBEpisode ep = session.get(FBEpisode.class, id);
+		DBEpisode ep = session.get(DBEpisode.class, id);
 		session.getTransaction().commit();
 		return ep;
 	}

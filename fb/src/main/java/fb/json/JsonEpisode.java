@@ -1,4 +1,6 @@
-package fb;
+package fb.json;
+
+import fb.db.DBEpisode;
 
 public class JsonEpisode {
 
@@ -10,7 +12,7 @@ public class JsonEpisode {
 	private String parentID;
 	private String[] childIDs;
 	public JsonEpisode() {} 
-	public JsonEpisode(FBEpisode ep, String parentID, String[] childIDs) {
+	public JsonEpisode(DBEpisode ep, String parentID, String[] childIDs) {
 		this.id = ep.getId();
 		this.title = ep.getTitle();
 		this.link = ep.getLink();

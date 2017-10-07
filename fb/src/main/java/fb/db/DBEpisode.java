@@ -1,4 +1,4 @@
-package fb;
+package fb.db;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="storyfb")
-public class FBEpisode {
+public class DBEpisode {
 	
 	@Id
 	@Column( length = 2048 )
@@ -27,16 +27,16 @@ public class FBEpisode {
 	private String author;
 	
 	@ManyToOne
-	private FBEpisode parent;
+	private DBEpisode parent;
 	
 	@OneToMany(mappedBy = "parent")
-	private List<FBEpisode> children = new ArrayList<>();
+	private List<DBEpisode> children = new ArrayList<>();
 	
 	@Lob
 	private String body;
 	
 	// The following constructor, getters, and setters are required for JPA persistence
-	public FBEpisode() {} 
+	public DBEpisode() {} 
 	public String getId() {
 		return id;
 	}
@@ -67,16 +67,16 @@ public class FBEpisode {
 	public void setAuthor(String author) {
 		this.author = author;
 	}
-	public FBEpisode getParent() {
+	public DBEpisode getParent() {
 		return parent;
 	}
-	public void setParent(FBEpisode parent) {
+	public void setParent(DBEpisode parent) {
 		this.parent = parent;
 	}
-	public List<FBEpisode> getChildren() {
+	public List<DBEpisode> getChildren() {
 		return children;
 	}
-	public void setChildren(List<FBEpisode> children) {
+	public void setChildren(List<DBEpisode> children) {
 		this.children = children;
 	}
 	
@@ -84,7 +84,7 @@ public class FBEpisode {
 		StringBuilder sb = new StringBuilder();
 		sb.append(id + ": " + title);
 		sb.append(" [" + ((parent==null)?"root":parent.getTitle()) + "]");
-		for (FBEpisode child : children) sb.append(" [" + child.getTitle() + "]");
+		for (DBEpisode child : children) sb.append(" [" + child.getTitle() + "]");
 		return sb.toString();
 	}
 }

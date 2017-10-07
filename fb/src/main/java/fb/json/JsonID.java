@@ -1,4 +1,4 @@
-package fb;
+package fb.json;
 
 public class JsonID {
 	private String id;

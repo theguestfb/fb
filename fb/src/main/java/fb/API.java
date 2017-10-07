@@ -12,7 +12,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 @Path("")
-public class FBAPI {
+public class API {
 	
 	/**
 	 * Gets an episode by its id, as a JSON object
@@ -24,7 +24,7 @@ public class FBAPI {
 	@Path("getapi/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getapi(@PathParam("id") String id) {
-		String r = Stuff.getAPI(id);
+		String r = Story.getAPI(id);
 		return ((r==null)?Response.ok("not found").status(404):Response.ok(r)).build();
 	}
 	
@@ -42,7 +42,7 @@ public class FBAPI {
 	@Path("addapi")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addapi(@FormParam("ep") String ep) {
-		return Response.ok(Stuff.addAPI(ep)).build();
+		return Response.ok(Story.addAPI(ep)).build();
 	}
 	
 	/**
@@ -83,7 +83,7 @@ public class FBAPI {
 	@Path("get/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response get(@PathParam("id") String id) {
-		return Response.ok(Stuff.getHTML(id)).build();
+		return Response.ok(Story.getHTML(id)).build();
 	}
 	
 	/**
@@ -95,7 +95,7 @@ public class FBAPI {
 	@Path("add/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response add(@PathParam("id") String id) {
-		return Response.ok(Stuff.addForm(id)).build();
+		return Response.ok(Story.addForm(id)).build();
 	}
 	
 	/**
@@ -109,7 +109,7 @@ public class FBAPI {
 	@POST
 	@Path("addpost/{id}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response addpost(@PathParam("id") String id, @FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author) {
-		return Response.ok(Stuff.addpost(id, title, body, author)).build();
+	public Response addpost(@PathParam("id") String id, @FormParam("link") String link, @FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author) {
+		return Response.ok(Story.addpost(id, link, title, body, author)).build();
 	}
 }

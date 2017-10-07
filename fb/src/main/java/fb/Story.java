@@ -5,21 +5,24 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.commons.lang3.text.WordUtils;
-
 import com.google.gson.Gson;
 
+import fb.db.DB;
+import fb.db.DBEpisode;
+import fb.json.JsonEpisode;
+import fb.json.JsonID;
+
 /**
- * Methods to handle api requests (kept here to keep FBAPI.java clean) along with some utility fuctions. 
- * 
- * Also contains hardcoded HTML strings, for now (TODO)
+ * Contains the actual logic that controls how the site works
  */
-public class Stuff {
+public class Story {
 	
-	// Aforementioned hardcoded HTML
 	private static final String storyDefault = readFile("story.html");
 	private static final String formDefault = readFile("addform.html");
 	private static final String successDefault = readFile("success.html");
+	private static final String failureDefault = readFile("failure.html");
+	
+	/////////////////////////////////////// functions to get episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 	
 	/**
 	 * Gets an episode by its id
@@ -27,9 +30,8 @@ public class Stuff {
 	 * @return HTML episode
 	 */
 	static String getAPI(String id) {
-		FBEpisode ep = DB.getEp(id);
+		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return null;
-		
 		String[] childIDs = new String[ep.getChildren().size()];
 		for (int i=0; i<childIDs.length; ++i) childIDs[i] = ep.getChildren().get(i).getId();
 		return new Gson().toJson(new JsonEpisode(ep, (ep.getParent()==null)?null:ep.getParent().getId(), childIDs));
@@ -41,12 +43,12 @@ public class Stuff {
 	 * @return HTML episode
 	 */
 	static String getHTML(String id) {
-		FBEpisode ep = DB.getEp(id);
+		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		else {
 			StringBuilder sb = new StringBuilder();
-			List<FBEpisode> children = ep.getChildren();
-			if (children != null) for (FBEpisode child : children) if (child != null){
+			List<DBEpisode> children = ep.getChildren();
+			if (children != null) for (DBEpisode child : children) if (child != null){
 				sb.append("<p><a href=" + child.getId() + ">" + child.getLink() + "</a></p>");
 			}
 			return storyDefault
@@ -58,14 +60,17 @@ public class Stuff {
 					.replace("$CHILDREN", sb.toString());
 		}
 	}
-
+	
+	
+	/////////////////////////////////////// functions to add episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	
 	/**
 	 * Returns the form for adding new episodes
 	 * @param id id of parent episode
 	 * @return HTML form
 	 */
 	static String addForm(String id) {
-		FBEpisode ep = DB.getEp(id);
+		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		return formDefault
 				.replace("$TITLE", ep.getTitle())
@@ -79,7 +84,16 @@ public class Stuff {
 	 */
 	static String addAPI(String ep) {
 		JsonEpisode jsonChild = new Gson().fromJson(ep, JsonEpisode.class);
-		FBEpisode child = DB.addEp(jsonChild.getId(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
+		
+		StringBuilder errorString = new StringBuilder();
+		if (jsonChild.getLink().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
+		if (jsonChild.getTitle().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
+		if (jsonChild.getBody().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
+		if (jsonChild.getAuthor().trim().length() == 0) errorString.append("Link text cannot be empty<br/>");
+
+		if (errorString.length() > 0) return errorString.toString();
+		
+		DBEpisode child = DB.addEp(jsonChild.getId(), jsonChild.getLink(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
 		if (child == null) return null;
 		return new Gson().toJson(new JsonID(child.getId()));	
 	}
@@ -92,13 +106,23 @@ public class Stuff {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	static String addpost(String id, String title, String body, String author) {
-		FBEpisode child = DB.addEp(id, title, body, author);
-		if (child == null) return null;
+	static String addpost(String id, String link, String title, String body, String author) {
+		StringBuilder emptyErrors = new StringBuilder();
+		if (link.trim().length() == 0) emptyErrors.append("Link text cannot be empty<br/>");
+		if (title.trim().length() == 0) emptyErrors.append("Title cannot be empty<br/>");
+		if (body.trim().length() == 0) emptyErrors.append("Body cannot be empty<br/>");
+		if (author.trim().length() == 0) emptyErrors.append("Author cannot be empty<br/>");
+		if (emptyErrors.length() > 0) return failureDefault.replace("$REASON", emptyErrors.toString());
+		
+		DBEpisode child = DB.addEp(id, link, title, body, author);
+		if (child == null) return failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
+		
 		return successDefault.replace("$ID", child.getId() + "");	
 	}
 	
-	static String readFile(String path) {
+	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	
+	public static String readFile(String path) {
 		try {
 			StringBuilder sb = new StringBuilder();
 			Scanner f = new Scanner(new File("/opt/fb/static_snippets/" + path));
@@ -116,16 +140,6 @@ public class Stuff {
 	 * @return formatted body
 	 */
 	private static String formatBody(String body) {
-		/*StringBuilder ret = new StringBuilder();
-		StringBuilder line = new StringBuilder();
-		for (char c : body.toCharArray()) {
-			if (c=='\n') {
-				ret.append(WordUtils.wrap(line.toString(), 200, "<br/>", false) + "<br/>");
-				line = new StringBuilder();
-			} else line.append(c);
-		}
-		ret.append(line.toString());
-		return ret.toString();*/
 		return body.replace("\n", "<br/>");
 	}
 	
