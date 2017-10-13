@@ -1,6 +1,7 @@
 package fb.db;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.Column;
@@ -17,7 +18,7 @@ import javax.persistence.Table;
 public class DBEpisode {
 	
 	@Id
-	@Column( length = 2048 )
+	@Column( length = 4096 )
 	private String id;
 		
 	private String title;
@@ -25,6 +26,8 @@ public class DBEpisode {
 	private String link;
 	
 	private String author;
+	
+	private Date date;
 	
 	@ManyToOne
 	private DBEpisode parent;
@@ -66,6 +69,12 @@ public class DBEpisode {
 	}
 	public void setAuthor(String author) {
 		this.author = author;
+	}
+	public Date getDate() {
+		return date;
+	}
+	public void setDate(Date date) {
+		this.date = date;
 	}
 	public DBEpisode getParent() {
 		return parent;

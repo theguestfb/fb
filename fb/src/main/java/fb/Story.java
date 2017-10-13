@@ -1,66 +1,76 @@
 package fb;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Scanner;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 
-import com.google.gson.Gson;
 import com.google.common.html.HtmlEscapers;
 
 import fb.db.DB;
 import fb.db.DBEpisode;
-import fb.json.JsonEpisode;
-import fb.json.JsonID;
 
 /**
  * Contains the actual logic that controls how the site works
  */
 public class Story {
 	
-	private static final String storyDefault = readFile("story.html");
-	private static final String formDefault = readFile("addform.html");
-	private static final String successDefault = readFile("success.html");
-	private static final String failureDefault = readFile("failure.html");
-	
-	/////////////////////////////////////// functions to get episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	/////////////////////////////////////// function to get episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 	
 	/**
-	 * Gets an episode by its id
+	 * Gets an episode by its id, with children in sorted order
+	 * Sort orders:
+	 * 
+	 * 0: oldest first (by keystring/submission date) DEFAULT
+	 * 1: newest first (reverse keystring/submission date)
+	 * 2: number of children (most to least)
+	 * 3: number of children (least to most)
+	 * 4: random shuffle
+	 * 
 	 * @param id id of episode
 	 * @return HTML episode
 	 */
-	static String getAPI(String id) {
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return null;
-		String[] childIDs = new String[ep.getChildren().size()];
-		for (int i=0; i<childIDs.length; ++i) childIDs[i] = ep.getChildren().get(i).getId();
-		return new Gson().toJson(new JsonEpisode(ep, (ep.getParent()==null)?null:ep.getParent().getId(), childIDs));
-	}
-	
-	/**
-	 * Gets an episode by its id
-	 * @param id id of episode
-	 * @return HTML episode
-	 */
-	static String getHTML(String id) {
+	static String getHTML(String id, int sort) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		else {
 			StringBuilder sb = new StringBuilder();
-			List<DBEpisode> children = ep.getChildren();
-			if (children != null) for (DBEpisode child : children) if (child != null){
-				sb.append("<p><a href=" + child.getId() + ">" + child.getLink() + "</a></p>");
+			ArrayList<DBEpisode> children = new ArrayList<>(ep.getChildren());
+			switch (sort) {
+			case 0:
+			default:
+				Collections.sort(children, Strings.keyComparator);
+				break;
+			case 1:
+				Collections.sort(children, Strings.reverseKeyComparator);
+				break;
+			case 2:
+				Collections.sort(children, Strings.childrenMostLeastComparator);
+				break;
+			case 3:
+				Collections.sort(children, Strings.childrenLeastMostComparator);
+				break;
+			case 4:
+				Collections.shuffle(children);
+				break;
 			}
-			return storyDefault
+			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
+				sb.append("<p><a href=" + child.getId() + ">" + child.getLink() + "</a>" + " (" + child.getChildren().size() + ")" + "</p>");
+			}
+			return Strings.storyDefault
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
 					.replace("$BODY", formatBody(HtmlEscapers.htmlEscaper().escape(ep.getBody())))
 					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
 					.replace("$PARENTID", (ep.getParent() == null)?(""):(HtmlEscapers.htmlEscaper().escape(ep.getParent().getId())))
 					.replace("$ID", id)
+					.replace("$DATE", outputDate.format(ep.getDate()))
 					.replace("$CHILDREN", sb.toString());
 		}
 	}
+	
+	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
 	
 	
 	/////////////////////////////////////// functions to add episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -73,25 +83,9 @@ public class Story {
 	static String addForm(String id) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
-		return formDefault
+		return Strings.formDefault
 				.replace("$TITLE", ep.getTitle())
 				.replace("$ID", id);
-	}
-	
-	/**
-	 * Adds an episode to the story
-	 * @param ep JsonEpisode containing new episode data
-	 * @return
-	 */
-	static String addAPI(String ep) {
-		JsonEpisode jsonChild = new Gson().fromJson(ep, JsonEpisode.class);
-		
-		String errors = checkEpisode(jsonChild.getLink(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
-		if (errors != null) return errors;
-		
-		DBEpisode child = DB.addEp(jsonChild.getId(), jsonChild.getLink(), jsonChild.getTitle(), jsonChild.getBody(), jsonChild.getAuthor());
-		if (child == null) return null;
-		return new Gson().toJson(new JsonID(child.getId()));	
 	}
 	
 	/**
@@ -109,12 +103,12 @@ public class Story {
 		author = author.trim();
 		
 		String errors = checkEpisode(link, title, body, author);
-		if (errors != null) return failureDefault.replace("$REASON", errors);
+		if (errors != null) return Strings.failureDefault.replace("$REASON", errors);
 		
-		DBEpisode child = DB.addEp(id, link, title, body, author);
-		if (child == null) return failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
+		DBEpisode child = DB.addEp(id, link, title, body, author, new Date());
+		if (child == null) return Strings.failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
 		
-		return successDefault.replace("$ID", child.getId() + "");	
+		return Strings.successDefault.replace("$ID", child.getId() + "");	
 	}
 	
 	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -135,17 +129,7 @@ public class Story {
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
 	
-	public static String readFile(String path) {
-		try {
-			StringBuilder sb = new StringBuilder();
-			Scanner f = new Scanner(new File("/opt/fb/static_snippets/" + path));
-			while (f.hasNextLine()) sb.append(f.nextLine() + "\n");
-			f.close();
-			return sb.toString();
-		} catch (IOException e) {
-			return "Not found";
-		}
-	}
+
 	
 	/**
 	 * Apply formatting to the body of an episode

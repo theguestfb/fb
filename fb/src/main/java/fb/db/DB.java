@@ -1,6 +1,7 @@
 package fb.db;
 
 import java.util.Calendar;
+import java.util.Date;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -35,7 +36,7 @@ public class DB {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	public static DBEpisode addEp(String id, String link, String title, String body, String author) {
+	public static DBEpisode addEp(String id, String link, String title, String body, String author, Date date) {
 		Session session = DB.getSession();
 		session.beginTransaction();
 		DBEpisode parent = session.get(DBEpisode.class, id);
@@ -48,6 +49,7 @@ public class DB {
 			child.setBody(body);
 			child.setAuthor(author);
 			child.setParent(parent);
+			child.setDate(date);
 			child.setId(id+"-"+(1+parent.getChildren().size()));
 			parent.getChildren().add(child);
 			session.save(child);
