@@ -93,8 +93,8 @@ public class InitDB {
 				if (key[key.length - 1] != 1) {
 					--key[key.length - 1];
 					String missingKey = arrToKey(key);
-					if (!map.containsKey(missingKey)) {
-						missingEpisodes.add(newId);
+					if (!map.containsKey(missingKey) && !missingEpisodes.contains(missingKey)) {
+						missingEpisodes.add(missingKey);
 						isFull = false;
 					}
 				}
