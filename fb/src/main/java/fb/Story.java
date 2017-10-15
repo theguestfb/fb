@@ -6,10 +6,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
+
 import com.google.common.html.HtmlEscapers;
 
 import fb.db.DB;
 import fb.db.DBEpisode;
+import fb.db.DBRecents;
 
 /**
  * Contains the actual logic that controls how the site works
@@ -57,20 +61,53 @@ public class Story {
 				break;
 			}
 			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
-				sb.append("<p><a href=" + child.getId() + ">" + child.getLink() + "</a>" + " (" + child.getChildren().size() + ")" + "</p>");
+				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>");
 			}
 			return Strings.storyDefault
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
-					.replace("$BODY", formatBody(HtmlEscapers.htmlEscaper().escape(ep.getBody())))
+					.replace("$BODY", formatBody(ep.getBody()))
 					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
-					.replace("$PARENTID", (ep.getParent() == null)?(""):(HtmlEscapers.htmlEscaper().escape(ep.getParent().getId())))
+					.replace("$PARENTID", (((ep.getParent() == null) || (ep.getParent().getId().equals(ep.getId()))) ? ("..") : (HtmlEscapers.htmlEscaper().escape(ep.getParent().getId()))))
 					.replace("$ID", id)
-					.replace("$DATE", outputDate.format(ep.getDate()))
+					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.getDate())))
 					.replace("$CHILDREN", sb.toString());
 		}
 	}
 	
 	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
+	
+	
+	/**
+	 * Gets an list of recent episodes
+
+	 * @return HTML recents
+	 */
+	static String getRecents() {
+		DBRecents recents = DB.getRecents();
+		{
+			StringBuilder sb = new StringBuilder();
+
+			for (DBEpisode child : recents.getRecents()) if (child != null){
+				String story = "";
+				switch (child.getId().split("-")[0]) {
+				case "1":
+					story = "(Forum)";
+					break;
+				case "2":
+					story = "(You Are What You Wish)";
+					break;
+				case "3":
+					story = "(Altered Fates)";
+					break;
+				case "4":
+					story = "(The Future of Gaming)";
+					break;
+				}
+				sb.append("<p><a href=get/" + child.getId() + ">" + child.getLink() + "</a>" + " by " + child.getAuthor() + " on " + outputDate.format(child.getDate()) + " " + story + "</p>");
+			}
+			return Strings.recentsDefault.replace("$CHILDREN", sb.toString());
+		}
+	}
 	
 	
 	/////////////////////////////////////// functions to add episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -107,7 +144,7 @@ public class Story {
 		
 		DBEpisode child = DB.addEp(id, link, title, body, author, new Date());
 		if (child == null) return Strings.failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
-		
+				
 		return Strings.successDefault.replace("$ID", child.getId() + "");	
 	}
 	
@@ -132,12 +169,15 @@ public class Story {
 
 	
 	/**
-	 * Apply formatting to the body of an episode
-	 * @param body unformatted body
-	 * @return formatted body
+	 * Escape body text and convert markdown/formatting to HTML
+	 * @param body unformatted markdown body
+	 * @return HTML formatted body
 	 */
 	private static String formatBody(String body) {
-		return body.replace("\n", "<br/>");
+		String ret = body;
+		ret = HtmlEscapers.htmlEscaper().escape(ret);
+		ret = HtmlRenderer.builder().build().render(Parser.builder().build().parse(ret));
+		return ret;
 	}
 	
 	private static String notFound(String id) {

@@ -24,6 +24,7 @@ public class InitDB {
 	public static void main(String[] args) throws Exception {
 
 		Session session = DB.getSession();
+				
 		System.out.println("Starting import");
 		long stop, start=System.nanoTime();
 		
@@ -46,6 +47,19 @@ public class InitDB {
 		stop = System.nanoTime();
 		System.out.println("yawyw: " + (((double)(stop-start))/1000000000.0));
 		
+		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
+		System.out.println("Adding recents");
+		DBRecents recents = new DBRecents();
+		recents.setId(1);
+		DBEpisode recentId = DB.getEp("2-704");
+		recents.getRecents().add(recentId);
+		session.save(recents);
+		System.out.println("Added recents");
+		
+		DBRecents test = DB.getRecents();
+		System.out.println(test.getId());
+		System.out.println(test.getRecents().size());
+		
 		session.close();
 		DB.getSessionFactory().close();
 		System.out.println("Fin");
@@ -55,16 +69,16 @@ public class InitDB {
 		System.out.println("Importing " + story);
 		String dirPath = "/Users/lpreams/Downloads/" + story + "/";
 		
-		session.beginTransaction();
-		
+		/*session.beginTransaction();
+		System.out.println("Loading root of " + story);
 		DBEpisode rootEp4 = readEpisode(new File(dirPath+"/root"));
 		rootEp4.setLink("");
 		rootEp4.setParent(rootEp4);
 		rootEp4.setId(rootId);
 		
 		session.save(rootEp4);
-		session.getTransaction().commit();
-		
+		session.getTransaction().commit();*/
+		System.out.println("Loading index of " + story);
 		TreeMap<String, String> map = new TreeMap<>(Strings.keyStringComparator); // <"1-2-3","01234someguy">
 		Scanner index;
 		try {
@@ -83,6 +97,19 @@ public class InitDB {
 		}
 		index.close();
 		
+		System.out.println("Persisting legacy IDs for " + story);
+		for (String newId : map.keySet()) {
+			session.beginTransaction();
+			String oldId = map.get(newId);
+			DBLegacyId legacy = new DBLegacyId();
+			legacy.setId(oldId);
+			legacy.setNewId(newId);
+			session.save(legacy);
+			session.getTransaction().commit();
+		}
+		
+		/*
+		System.out.println("Persisting episodes for " + story); 
 		boolean isFull = false;
 		TreeSet<String> missingEpisodes = new TreeSet<>(Strings.keyStringComparator);
 		while (!isFull) {
@@ -142,7 +169,7 @@ public class InitDB {
 			session.save(child);
 			session.merge(parent);
 			session.getTransaction().commit();
-		}
+		}*/
 	}
 	
 	private static int[] keyToArr(String s) {
