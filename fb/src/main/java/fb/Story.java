@@ -8,6 +8,7 @@ import java.util.Date;
 
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
+import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.common.html.HtmlEscapers;
 
@@ -36,7 +37,7 @@ public class Story {
 	 * @param id id of episode
 	 * @return HTML episode
 	 */
-	static String getHTML(String id, int sort) {
+	public static String getHTML(String id, int sort) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		else {
@@ -45,23 +46,23 @@ public class Story {
 			switch (sort) {
 			case 0:
 			default:
-				Collections.sort(children, Strings.keyComparator);
+				Collections.sort(children, Comparators.keyComparator);
 				break;
 			case 1:
-				Collections.sort(children, Strings.reverseKeyComparator);
+				Collections.sort(children, Comparators.reverseKeyComparator);
 				break;
 			case 2:
-				Collections.sort(children, Strings.childrenMostLeastComparator);
+				Collections.sort(children, Comparators.childrenMostLeastComparator);
 				break;
 			case 3:
-				Collections.sort(children, Strings.childrenLeastMostComparator);
+				Collections.sort(children, Comparators.childrenLeastMostComparator);
 				break;
 			case 4:
 				Collections.shuffle(children);
 				break;
 			}
 			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
-				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>");
+				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>\n");
 			}
 			return Strings.storyDefault
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
@@ -82,7 +83,7 @@ public class Story {
 
 	 * @return HTML recents
 	 */
-	static String getRecents() {
+	public static String getRecents() {
 		DBRecents recents = DB.getRecents();
 		{
 			StringBuilder sb = new StringBuilder();
@@ -117,10 +118,10 @@ public class Story {
 	 * @param id id of parent episode
 	 * @return HTML form
 	 */
-	static String addForm(String id) {
+	public static String addForm(String id) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
-		return Strings.formDefault
+		return Strings.addFormDefault
 				.replace("$TITLE", ep.getTitle())
 				.replace("$ID", id);
 	}
@@ -133,7 +134,7 @@ public class Story {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	static String addpost(String id, String link, String title, String body, String author) {
+	public static String addPost(String id, String link, String title, String body, String author) {
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
@@ -146,6 +147,51 @@ public class Story {
 		if (child == null) return Strings.failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
 				
 		return Strings.successDefault.replace("$ID", child.getId() + "");	
+	}
+	
+	/////////////////////////////////////// functions to modify episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+	
+	/**
+	 * Returns the form for adding new episodes
+	 * @param id id of parent episode
+	 * @return HTML form
+	 */
+	public static String modifyForm(String id) {
+		DBEpisode ep = DB.getEp(id);
+		if (ep == null) return notFound(id);
+		return Strings.modifyFormDefault
+				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
+				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.getBody()))
+				.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
+				.replace("$LINK", HtmlEscapers.htmlEscaper().escape(ep.getLink()))
+				.replace("$ID", id);
+	}
+	
+	/**
+	 * Modifies an episode of the story
+	 * @param id id of episode
+	 * @param title title of new episode
+	 * @param body body of new episode
+	 * @param author author of new episode
+	 * @return HTML success page
+	 */
+	public static String modifyPost(String id, String link, String title, String body, String author, String password) {
+
+		link = link.trim();
+		title = title.trim();
+		body = body.trim();
+		author = author.trim();
+		
+		String errors = checkEpisode(link, title, body, author);
+		if (errors != null) return Strings.failureDefault.replace("$REASON", errors);
+		
+		if (!BCrypt.checkpw(password, Strings.modifyPasswordhash)) return Strings.failureDefault.replace("$REASON", "Incorrect password");
+		
+		if (!DB.modifyEp(id, link, title, body, author)) {
+			return Strings.failureDefault.replace("$REASON", "Not found: " + id);
+		}
+				
+		return Strings.successDefault.replace("$ID", id + "");	
 	}
 	
 	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

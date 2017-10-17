@@ -6,13 +6,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.hibernate.Session;
 
+import fb.Comparators;
 import fb.Strings;
 
 /**
@@ -25,151 +26,188 @@ public class InitDB {
 
 		Session session = DB.getSession();
 				
-		System.out.println("Starting import");
+		Strings.log("Starting import");
 		long stop, start=System.nanoTime();
 		
 		readStory(session, "tfog", "4");
 		stop = System.nanoTime();
-		System.out.println("tfog: " + (((double)(stop-start))/1000000000.0));
+		Strings.log("finished tfog: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
 		readStory(session, "af", "3");
 		stop = System.nanoTime();
-		System.out.println("af: " + (((double)(stop-start))/1000000000.0));
+		Strings.log("finished af: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
 		readStory(session, "forum", "1");
 		stop = System.nanoTime();
-		System.out.println("forum: " + (((double)(stop-start))/1000000000.0));
+		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
 		readStory(session, "yawyw", "2");
 		stop = System.nanoTime();
-		System.out.println("yawyw: " + (((double)(stop-start))/1000000000.0));
+		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
 		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
-		System.out.println("Adding recents");
+		Strings.log("Initializing recents");
 		DBRecents recents = new DBRecents();
 		recents.setId(1);
-		DBEpisode recentId = DB.getEp("2-704");
-		recents.getRecents().add(recentId);
+		recents.getRecents().add(DB.getEp("1"));
+		recents.getRecents().add(DB.getEp("2"));
+		recents.getRecents().add(DB.getEp("3"));
+		recents.getRecents().add(DB.getEp("4"));
+		session.beginTransaction();
 		session.save(recents);
-		System.out.println("Added recents");
-		
-		DBRecents test = DB.getRecents();
-		System.out.println(test.getId());
-		System.out.println(test.getRecents().size());
+		session.getTransaction().commit();
+		Strings.log("Added recents");
 		
 		session.close();
 		DB.getSessionFactory().close();
-		System.out.println("Fin");
+		Strings.log("Fin");
 	}
 	
 	private static void readStory(Session session, String story, String rootId) {
-		System.out.println("Importing " + story);
-		String dirPath = "/Users/lpreams/Downloads/" + story + "/";
+		Strings.log("Importing " + story);
+		String dirPath = "/Users/lpreams/Downloads/scrape10/" + story + "/";
 		
-		/*session.beginTransaction();
-		System.out.println("Loading root of " + story);
-		DBEpisode rootEp4 = readEpisode(new File(dirPath+"/root"));
-		rootEp4.setLink("");
-		rootEp4.setParent(rootEp4);
-		rootEp4.setId(rootId);
+		session.beginTransaction();
 		
-		session.save(rootEp4);
-		session.getTransaction().commit();*/
-		System.out.println("Loading index of " + story);
-		TreeMap<String, String> map = new TreeMap<>(Strings.keyStringComparator); // <"1-2-3","01234someguy">
+		Strings.log("Loading root of " + story);
+		DBEpisode rootEp = readEpisode(new File(dirPath+"/root"));
+		rootEp.setParent(null);
+		rootEp.setId(rootId);
+		
+		session.save(rootEp);
+		session.getTransaction().commit();
+		
+		Strings.log("Loading index of " + story);
+		TreeMap<String, String> map = new TreeMap<>(Comparators.keyStringComparator); // <"1-2-3","01234someguy">
 		Scanner index;
 		try {
 			index = new Scanner(new File(dirPath + "index.txt"));
 		} catch (FileNotFoundException e) {
-			System.out.println("index.txt  not found");
+			Strings.log("index.txt  not found for " + story + " " + dirPath + "index.txt");
 			return;
 		}
 		while (index.hasNext()) {
 			String oldId = index.next();
 			String newId = index.next();
 			if (map.put(newId, oldId) != null) {
-				System.out.println("Dupicate newId: " + newId);
+				Strings.log("Dupicate newId: " + newId + " " + oldId);
 				System.exit(1);
 			}
 		}
 		index.close();
 		
-		System.out.println("Persisting legacy IDs for " + story);
-		for (String newId : map.keySet()) {
-			session.beginTransaction();
-			String oldId = map.get(newId);
-			DBLegacyId legacy = new DBLegacyId();
-			legacy.setId(oldId);
-			legacy.setNewId(newId);
-			session.save(legacy);
-			session.getTransaction().commit();
-		}
-		
-		/*
-		System.out.println("Persisting episodes for " + story); 
-		boolean isFull = false;
-		TreeSet<String> missingEpisodes = new TreeSet<>(Strings.keyStringComparator);
-		while (!isFull) {
-			isFull = true;
-			for (String newId : map.keySet()) {
-				// Check for missing episode above this one
-				int[] key = keyToArr(newId);
-				if (key[key.length - 1] != 1) {
-					--key[key.length - 1];
-					String missingKey = arrToKey(key);
-					if (!map.containsKey(missingKey) && !missingEpisodes.contains(missingKey)) {
-						missingEpisodes.add(missingKey);
-						isFull = false;
-					}
+		Thread legacyThread = new Thread() {
+			public void run() {
+				Strings.log("Persisting legacy IDs for " + story);
+				for (String newId : map.keySet()) {
+					session.beginTransaction();
+					String oldId = map.get(newId);
+					DBLegacyId legacy = new DBLegacyId();
+					legacy.setId(oldId);
+					legacy.setNewId(newId);
+					session.save(legacy);
+					session.getTransaction().commit();
 				}
 			}
-		}
+		};
+		legacyThread.start();
 		
-		for (String newId : map.keySet()) {
-			File f = new File(dirPath + map.get(newId));
-			session.beginTransaction();
-			String childId = newId;
-			String parentId = getParentId(childId);
-			DBEpisode child = readEpisode(f);
-			if (child == null) {
-				session.getTransaction().commit();
-				System.out.println("Empty: " + newId);
-				continue;
+		
+		Strings.log("Finding missing eps for " + story); 
+		
+		HashSet<String> missingEpisodes = new HashSet<>();
+		// Figure out where stuff is missing from the scrape
+		for (String id : map.keySet()) {
+			String parentId = getParentId(id);
+			String olderSiblingId = getOlderSiblingId(id);
+			if (keyToArr(parentId).length > 1 && !map.containsKey(parentId)) {
+				missingEpisodes.add(parentId);
 			}
-			DBEpisode parent = session.get(DBEpisode.class, parentId);
-			child.setId(childId);
-			child.setParent(parent);
-			
-			parent.getChildren().add(child);
-			session.save(child);
-			session.merge(parent);
-			session.getTransaction().commit();
+			if (olderSiblingId != null) if (!map.containsKey(olderSiblingId)) {
+				missingEpisodes.add(olderSiblingId);
+			}
 		}
 		
-		for (String newId : missingEpisodes) {
-			session.beginTransaction();
-			String childId = newId;
-			String parentId = getParentId(childId);
-			DBEpisode child = new DBEpisode();
-			
-			child.setTitle("(Empty)");
-			child.setLink("(Empty)");
-			child.setAuthor("(Empty)");
-			child.setBody("(Empty)");
-			child.setDate(new Date());
-			System.out.println("Missing: " + childId);
-			DBEpisode parent = session.get(DBEpisode.class, parentId);
-			child.setId(childId);
-			child.setParent(parent);
-			
-			parent.getChildren().add(child);
-			session.save(child);
-			session.merge(parent);
-			session.getTransaction().commit();
-		}*/
+		boolean noneMissing = false;
+		while (noneMissing == false) {
+			noneMissing = true;
+			HashSet<String> newMissingEpisodess = new HashSet<>();
+			for (String id : missingEpisodes) {
+				String parentId = getParentId(id);
+				String olderSiblingId = getOlderSiblingId(id);
+				if (keyToArr(parentId).length > 1 && !missingEpisodes.contains(parentId) && !map.containsKey(parentId)) {
+					newMissingEpisodess.add(parentId);
+					noneMissing = false;
+				}
+				if (olderSiblingId != null) if (!missingEpisodes.contains(olderSiblingId) && !map.containsKey(olderSiblingId)) {
+					newMissingEpisodess.add(olderSiblingId);
+					noneMissing = false;
+				}
+			}
+			missingEpisodes.addAll(newMissingEpisodess);
+		}
+		
+		Strings.log("Done finding missing eps for " + story + ", waiting for legacy persistence to finish"); 
+		try {
+			legacyThread.join();
+		} catch (InterruptedException e) {
+			Strings.log("Error joining legacyThread");
+			System.exit(2);
+		}
+		
+		for (String id : missingEpisodes) {
+			if (map.put(id, null) != null) {
+				throw new RuntimeException(id + " was marked missing, but exists in map");
+			}
+		}
+		
+		Strings.log("Persisting episodes for " + story); 
+		for (String newId : map.keySet()) {
+			if (missingEpisodes.contains(newId)) { // episode needs to exist but doesn't, so make it from scratch
+				session.beginTransaction();
+				String childId = newId;
+				String parentId = getParentId(childId);
+				DBEpisode child = new DBEpisode();
+				
+				child.setTitle("(Empty)");
+				child.setLink("(Empty)");
+				child.setAuthor("(Empty)");
+				child.setBody("(Empty)");
+				child.setDate(new Date());
+				Strings.log("ID must exist, but doesn't: " + childId);
+				DBEpisode parent = session.get(DBEpisode.class, parentId);
+				child.setId(childId);
+				child.setParent(parent);
+				
+				parent.getChildren().add(child);
+				session.save(child);
+				session.merge(parent);
+				session.getTransaction().commit();
+			} else { // otherwise, load the episode from file
+				File f = new File(dirPath + map.get(newId));
+				session.beginTransaction();
+				String childId = newId;
+				String parentId = getParentId(childId);
+				DBEpisode child = readEpisode(f);
+				if (child == null) {
+					throw new RuntimeException("Null child: " + newId + " " + f.getName());
+					/*session.getTransaction().commit();
+					Strings.log("Episode exists but is (partially) empty: " + newId + " " + f.getName());
+					continue;*/
+				}
+				DBEpisode parent = session.get(DBEpisode.class, parentId);
+				child.setId(childId);
+				child.setParent(parent);
+
+				parent.getChildren().add(child);
+				session.save(child);
+				session.merge(parent);
+				session.getTransaction().commit();
+			}
+		}
 	}
 	
 	private static int[] keyToArr(String s) {
@@ -192,6 +230,12 @@ public class InitDB {
 		return ret.substring(0, ret.length()-1);
 	}
 	
+	private static String getOlderSiblingId(String s) {
+		int[] arr = keyToArr(s);
+		arr[arr.length-1]--;
+		return (arr[arr.length-1] >= 1)?(arrToKey(arr)):(null);
+	}
+	
 	private static DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 	private static DBEpisode readEpisode(File f) {
 		try {
@@ -199,7 +243,7 @@ public class InitDB {
 			DBEpisode ep = new DBEpisode();
 			try {
 				in.nextLine(); // skip oldId, not needed
-				String id = in.nextLine();//System.out.println(in.nextLine()); // skit newId, not needed
+				String id = in.nextLine();//Strings.log(in.nextLine()); // skit newId, not needed
 				ep.setLink(trimTo(in.nextLine(), 254));
 				ep.setTitle(trimTo(in.nextLine(), 254));
 				ep.setAuthor(trimTo(in.nextLine(), 254));
@@ -208,7 +252,7 @@ public class InitDB {
 					ep.setDate(df.parse(dateString));
 				} catch (ParseException e) {
 					ep.setDate(new Date());
-					System.out.println("Bad header: " + id);
+					Strings.log("Bad header: " + id + " " + f.getAbsolutePath());
 				}
 			} catch (NoSuchElementException e) {
 				in.close();
@@ -217,7 +261,7 @@ public class InitDB {
 				if (ep.getBody() == null) ep.setBody("");
 				if (ep.getAuthor() == null) ep.setAuthor("(Empty)");
 				if (ep.getDate() == null) ep.setDate(new Date());
-				System.out.println("Empty episode: " + f.getName());
+				Strings.log("(partially) empty episode: " + f.getName());
 				return ep;
 			}
 			String line = in.nextLine();
@@ -229,7 +273,7 @@ public class InitDB {
 			in.close();
 			return ep;
 		} catch (FileNotFoundException e) {
-			System.err.println("Error: file not found " + f.getAbsolutePath());
+			Strings.log("Error: file not found " + f.getAbsolutePath());
 			throw new RuntimeException();
 		} 
 	}
@@ -240,7 +284,7 @@ public class InitDB {
 	}
 	
 	private static void yawywOld(Session session) {
-		System.out.println("Making parent episode");
+		Strings.log("Making parent episode");
 
 		// DB.addEp() cannot be used since it requires
 		// a parent ID and the root has no parent. Instead,
@@ -268,8 +312,8 @@ public class InitDB {
 		DBEpisode child = DB.addEp("1", "episode two", "Enter the Bitch", Strings.readFile("ep2.txt"),
 				"Jezzi_Belle_Stewart", new Date());
 
-		System.out.println("Root ID: " + parentID);
-		System.out.println("Chld ID: " + child.getId());
+		Strings.log("Root ID: " + parentID);
+		Strings.log("Chld ID: " + child.getId());
 	}
 	
 }
