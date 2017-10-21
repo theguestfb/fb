@@ -45,7 +45,7 @@ public class GetStuff {
 	 * 
 	 * @param id
 	 *            id of episode (1-7-4-...-3)
-	 * @return HTML episode
+	 * @return HTML episode with id
 	 */
 	@GET
 	@Path("get/{id}")
