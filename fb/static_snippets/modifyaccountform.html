@@ -1,0 +1,41 @@
+<html lang="en">
+<head>
+<script src='https://www.google.com/recaptcha/api.js'></script>
+<title>Fiction Branches</title>
+<link rel="import" href="/static/header.html">
+</head>
+<body>
+
+<div class="topcorner">
+<a href="/"><img alt="Fiction Branches" src="/images/fblogo.png" /></a>
+<br/>
+$ACCOUNT
+</div>
+
+	<h1>Modify your account</h1>
+	<form action= "../modifyaccountpost/$ID" method="post">
+		<p>
+                        Author name: <input type= "text" name= "author" size="100"/>$AUTHOR<br/>
+                </p>
+		<p>
+			Email: (You'll be able to change this at a later date)<br/>
+			(this will never be publicly displayed or shared with anyone)
+		</p>
+		                <p>
+                        New Password: <input type= "password" name= "password" size="100"/><br/>
+			(leave blank to leave unchanged)
+                </p>
+                <p>
+                        Confirm New Password: <input type= "password" name= "password" size="100"/><br/>
+			(leave blank to leave unchanged)
+                </p>
+		<p>
+			Password: <input type= "password" name= "password" size="100"/><br/>
+			(required)
+		</p>
+		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
+		<input type= "submit" value= "Submit"/>
+	</form>
+	<link rel="import" href="/static/footer.html">
+</body>
+</html>

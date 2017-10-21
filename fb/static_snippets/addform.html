@@ -1,32 +1,22 @@
-<html>
+<html lang="en">
 <head>
 <script src='https://www.google.com/recaptcha/api.js'></script>
 <title>Fiction Branches</title>
+<link rel="import" href="/static/header.html">
 </head>
-<style type="text/css">
-	body {
-		font-family: 'Helvetica', 'Arial', sans-serif;
-		word-wrap: break-word;
-		background-color: #4e98fc;
-		text-color: #000000
-	}
-	
-	textarea
-	{
-		font-family: 'Helvetica', 'Arial', sans-serif;
-		width:100%;
-	}
-	
-</style>
 <body>
+
+<div class="topcorner">
+<a href="/"><img alt="Fiction Branches" src="/images/fblogo.png" /></a>
+<br/>
+$ACCOUNT
+</div>
+
 	<h4><b>ANY EPISODES ADDED TO THE TEST SITE <i><u>WILL</i></u> BE DELETED IN THE NEAR FUTURE</b></h4>
 	<h1>Add to '$TITLE'</h1>
 	<form action= "../addpost/$ID" method="post">
 		<p>
 			<input type= "text" name= "title" size="100" placeholder="Title"/>
-		</p>
-		<p>
-			<input type= "text" name= "author" size="100" placeholder="Author"/>
 		</p>
 		<p>
 			<textarea name= "body" placeholder="Body" rows= "40"></textarea>
@@ -37,5 +27,6 @@
 		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
 		<input type= "submit" value= "Submit"/>
 	</form>
+	<link rel="import" href="/static/footer.html">
 </body>
 </html>

@@ -1,11 +1,13 @@
 package fb.api;
 
+import javax.ws.rs.CookieParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -24,8 +26,8 @@ public class AddStuff {
 	@GET
 	@Path("add/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response add(@PathParam("id") String id) {
-		return Response.ok(Story.addForm(id)).build();
+	public Response add(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Story.addForm(id, fbtoken)).build();
 	}
 	
 	/**
@@ -38,8 +40,8 @@ public class AddStuff {
 	@GET
 	@Path("modify/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response modify(@PathParam("id") String id) {
-		return Response.ok(Story.modifyForm(id)).build();
+	public Response modify(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Story.modifyForm(id, fbtoken)).build();
 	}
 
 	/**
@@ -59,16 +61,17 @@ public class AddStuff {
 	@Path("addpost/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response addpost(@PathParam("id") String id, @FormParam("link") String link,
-			@FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author,
-			@FormParam("g-recaptcha-response") String google) {
-		
-		String response = Strings.checkGoogle(google);
-		switch(response) {
-		case "true": break;
-		case "false": return Response.ok("reCAPTCHA failed").build();
-		default: return Response.ok(response).build();
+			@FormParam("title") String title, @FormParam("body") String body, 
+			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
 		}
-		return Response.ok(Story.addPost(id, link, title, body, author)).build();
+		return Response.ok(Story.addPost(id, link, title, body, fbtoken)).build();
 	}
 	
 	/**
@@ -88,15 +91,16 @@ public class AddStuff {
 	@Path("modifypost/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response modifypost(@PathParam("id") String id, @FormParam("link") String link,
-			@FormParam("title") String title, @FormParam("body") String body, @FormParam("author") String author,
-			@FormParam("password") String password, @FormParam("g-recaptcha-response") String google) {
-		
-		String response = Strings.checkGoogle(google);
-		switch(response) {
-		case "true": break;
-		case "false": return Response.ok("reCAPTCHA failed").build();
-		default: return Response.ok(response).build();
+			@FormParam("title") String title, @FormParam("body") String body, 
+			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
 		}
-		return Response.ok(Story.modifyPost(id, link, title, body, author, password)).build();
+		return Response.ok(Story.modifyPost(id, link, title, body, fbtoken)).build();
 	}
 }

@@ -6,15 +6,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 
+import javax.ws.rs.core.Cookie;
+
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
-import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.common.html.HtmlEscapers;
 
 import fb.db.DB;
 import fb.db.DBEpisode;
 import fb.db.DBRecents;
+import fb.db.DBUser;
 
 /**
  * Contains the actual logic that controls how the site works
@@ -37,7 +39,7 @@ public class Story {
 	 * @param id id of episode
 	 * @return HTML episode
 	 */
-	public static String getHTML(String id, int sort) {
+	public static String getHTML(String id, int sort, Cookie token) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		else {
@@ -64,10 +66,11 @@ public class Story {
 			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
 				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>\n");
 			}
-			return Strings.storyDefault
+			String author = DB.getAuthor(ep);
+			return Strings.getFile("story.html", token)
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
 					.replace("$BODY", formatBody(ep.getBody()))
-					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
+					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(author))
 					.replace("$PARENTID", (((ep.getParent() == null) || (ep.getParent().getId().equals(ep.getId()))) ? ("..") : (HtmlEscapers.htmlEscaper().escape(ep.getParent().getId()))))
 					.replace("$ID", id)
 					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.getDate())))
@@ -77,13 +80,12 @@ public class Story {
 	
 	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
 	
-	
 	/**
 	 * Gets an list of recent episodes
-
+	 * 
 	 * @return HTML recents
 	 */
-	public static String getRecents() {
+	public static String getRecents(Cookie token) {
 		DBRecents recents = DB.getRecents();
 		{
 			StringBuilder sb = new StringBuilder();
@@ -104,9 +106,9 @@ public class Story {
 					story = "(The Future of Gaming)";
 					break;
 				}
-				sb.append("<p><a href=get/" + child.getId() + ">" + child.getLink() + "</a>" + " by " + child.getAuthor() + " on " + outputDate.format(child.getDate()) + " " + story + "</p>");
+				sb.append("<p><a href=get/" + child.getId() + ">" + child.getLink() + "</a>" + " by " + DB.getAuthor(child) + " on " + outputDate.format(child.getDate()) + " " + story + "</p>");
 			}
-			return Strings.recentsDefault.replace("$CHILDREN", sb.toString());
+			return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 		}
 	}
 	
@@ -118,10 +120,11 @@ public class Story {
 	 * @param id id of parent episode
 	 * @return HTML form
 	 */
-	public static String addForm(String id) {
+	public static String addForm(String id, Cookie token) {
+		if (!Accounts.isLoggedIn(token)) return "You must be logged in to add episodes";
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
-		return Strings.addFormDefault
+		return Strings.getFile("addform.html", token)
 				.replace("$TITLE", ep.getTitle())
 				.replace("$ID", id);
 	}
@@ -134,19 +137,20 @@ public class Story {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	public static String addPost(String id, String link, String title, String body, String author) {
+	public static String addPost(String id, String link, String title, String body, Cookie token) {
+		DBUser user = Accounts.getUser(token);
+		if (user == null) return "You must be logged in to add episodes";
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
-		author = author.trim();
 		
-		String errors = checkEpisode(link, title, body, author);
-		if (errors != null) return Strings.failureDefault.replace("$REASON", errors);
+		String errors = checkEpisode(link, title, body);
+		if (errors != null) return Strings.getFile("failure.html", token).replace("$REASON", errors);
 		
-		DBEpisode child = DB.addEp(id, link, title, body, author, new Date());
-		if (child == null) return Strings.failureDefault.replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
+		DBEpisode child = DB.addEp(id, link, title, body, user, new Date());
+		if (child == null) return Strings.getFile("failure.html", token).replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
 				
-		return Strings.successDefault.replace("$ID", child.getId() + "");	
+		return Strings.getFile("success.html", token).replace("$ID", child.getId() + "");	
 	}
 	
 	/////////////////////////////////////// functions to modify episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -156,13 +160,16 @@ public class Story {
 	 * @param id id of parent episode
 	 * @return HTML form
 	 */
-	public static String modifyForm(String id) {
+	public static String modifyForm(String id, Cookie token) {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
-		return Strings.modifyFormDefault
+		DBUser user = Accounts.getUser(token);
+		if (user == null) return "You must be logged in to do that";
+		if (!user.getId().equals(ep.getAuthor().getId())) return "You can only edit episodes that you wrote";
+		return Strings.getFile("modifyform.html", token)
 				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
 				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.getBody()))
-				.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor()))
+				.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor().getAuthor()))
 				.replace("$LINK", HtmlEscapers.htmlEscaper().escape(ep.getLink()))
 				.replace("$ID", id);
 	}
@@ -175,38 +182,45 @@ public class Story {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	public static String modifyPost(String id, String link, String title, String body, String author, String password) {
-
+	public static String modifyPost(String id, String link, String title, String body, Cookie token) {
+		DBEpisode ep = DB.getEp(id);
+		if (ep == null) return notFound(id);
+		DBUser user = Accounts.getUser(token);
+		if (user == null) return "You must be logged in to do that";
+		if (!user.getId().equals(ep.getAuthor().getId())) return "You can only edit episodes that you wrote";
+		
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
-		author = author.trim();
 		
-		String errors = checkEpisode(link, title, body, author);
-		if (errors != null) return Strings.failureDefault.replace("$REASON", errors);
-		
-		if (!BCrypt.checkpw(password, Strings.modifyPasswordhash)) return Strings.failureDefault.replace("$REASON", "Incorrect password");
-		
-		if (!DB.modifyEp(id, link, title, body, author)) {
-			return Strings.failureDefault.replace("$REASON", "Not found: " + id);
+		String errors = checkEpisode(link, title, body);
+		if (errors != null) return Strings.getFile("failure.html", token).replace("$REASON", errors);
+				
+		if (!DB.modifyEp(id, link, title, body)) {
+			return Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id);
 		}
 				
-		return Strings.successDefault.replace("$ID", id + "");	
+		return Strings.getFile("success.html", token).replace("$ID", id + "");	
 	}
 	
 	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 	
-	private static String checkEpisode(String link, String title, String body, String author) {
+	/**
+	 * Checks that episode fields are non-empty within appropriate limits
+	 * @param link
+	 * @param title
+	 * @param body
+	 * @return
+	 */
+	private static String checkEpisode(String link, String title, String body) {
 		StringBuilder errors = new StringBuilder();
 		if (link.length() == 0) errors.append("Link text cannot be empty<br/>");
 		if (title.length() == 0) errors.append("Title cannot be empty<br/>");
 		if (body.length() == 0) errors.append("Body cannot be empty<br/>");
-		if (author.length() == 0) errors.append("Author cannot be empty<br/>");
 		
 		if (link.length() > 255) errors.append("Link text cannot be longer than 255 (" + link.length() + ")<br/>");
 		if (title.length() > 255) errors.append("Title cannot be longer than 255 (" + title.length() + ")<br/>");
 		if (body.length() > 100000) errors.append("Body cannot be longer than 100000 (" + body.length() + ")<br/>");
-		if (author.length() > 255) errors.append("Author cannot be longer than 255 (" + author.length() + ")<br/>");
 		if (errors.length() > 0) return errors.toString();
 		
 		return (errors.length() > 0) ? errors.toString() : null;

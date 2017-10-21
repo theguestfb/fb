@@ -1,40 +1,38 @@
-<html>
+<html lang="en">
 <head>
 <script src='https://www.google.com/recaptcha/api.js'></script>
 <title>Fiction Branches</title>
+<link rel="import" href="/static/header.html">
 </head>
-<style type="text/css">
-	body {
-		font-family: 'Helvetica', 'Arial', sans-serif;
-		word-wrap: break-word;
-		background-color: #4e98fc;
-		text-color: #000000
-	}
-	
-	textarea
-	{
-		font-family: 'Helvetica', 'Arial', sans-serif;
-		width:100%;
-	}
-	
-</style>
 <body>
+
+<div class="topcorner">
+<a href="/"><img alt="Fiction Branches" src="/images/fblogo.png" /></a>
+<br/>
+$ACCOUNT
+</div>
+
 	<h4><b>ANY EPISODES ADDED TO THE TEST SITE <i><u>WILL</i></u> BE DELETED IN THE NEAR FUTURE</b></h4>
 	<h1>Create an account</h1>
-	<form action= "../createaccountpost" method="post">
+	<form action= "/fb/createaccountpost" method="post">
 		<p>
 			Email: <input type= "text" name= "email" size="100" placeholder="email"/><br/>
 			(this will never be publicly displayed or shared with anyone)
 		</p>
 		<p>
-			Password: <input type= "password" name= "author" size="100"/>
+			Password: <input type= "password" name= "password" size="100"/>
 		</p>
+                <p>
+                        Confirm password: <input type= "password" name= "password2" size="100"/>
+                </p>
 		<p>
-			Author name: <input type= "text" name= "author" size="100" placeholder="email"/><br/>
+			Author name: <input type= "text" name= "author" size="100" placeholder="author"/><br/>
 			(this will be displayed on episodes you author, and can be changed later)
 		</p>
 		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
 		<input type= "submit" value= "Submit"/>
 	</form>
+	<p>$EXTRA</p>
+	<link rel="import" href="/static/footer.html">
 </body>
 </html>

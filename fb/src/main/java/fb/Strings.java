@@ -24,7 +24,9 @@ import java.nio.file.WatchService;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.ws.rs.core.Cookie;
 
 import com.google.gson.Gson;
 
@@ -32,31 +34,24 @@ import fb.json.JsonCaptchaResponse;
 
 public class Strings {
 	
+	public static final boolean RECAPTCHA = false;
+	
+	private static ConcurrentHashMap<String,String> files = new ConcurrentHashMap<>();
+	
+	public static String SMTP_PASSWORD = readFile("/opt/fb/smtp_password.txt");
 	public static String RECAPTCHA_SECRET = readFile("/opt/fb/recaptcha_secret.txt");
 	public static String modifyPasswordhash = readFile("/opt/fb/modify_pass.txt");
 	
-	public static String welcomeDefault = readFile("/opt/fb/static_snippets/welcome.html");
-	public static String storyDefault = readFile("/opt/fb/static_snippets/story.html");
-	public static String addFormDefault = readFile("/opt/fb/static_snippets/addform.html");
-	public static String successDefault = readFile("/opt/fb/static_snippets/success.html");
-	public static String failureDefault = readFile("/opt/fb/static_snippets/failure.html");
-	public static String recentsDefault = readFile("/opt/fb/static_snippets/recents.html");
-	public static String modifyFormDefault = readFile("/opt/fb/static_snippets/modifyform.html");
-		
-	public static String readFile2(String path) {
-		try {
-			StringBuilder sb = new StringBuilder();
-			Scanner f = new Scanner(new File(path));
-			while (f.hasNextLine()) sb.append(f.nextLine() + "\n");
-			f.close();
-			return sb.toString();
-		} catch (IOException e) {
-			return "Not found";
-		}
+	public static String getFile(String name, Cookie fbtoken) {
+		return files.get(name).replace("$ACCOUNT", Accounts.getAccount(fbtoken));
 	}
 	
 	public static String readFile(String path) {
-		try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
+		return readFile(new File(path));
+	}
+	
+	public static String readFile(File file) {
+		try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file)))) {
 			StringBuilder sb = new StringBuilder();
 			int x;
 			while ((x = in.read()) != -1) sb.append((char)x);
@@ -89,37 +84,11 @@ public class Strings {
 	}
 	
 	private static void updateFile(File f) {
-		switch (f.getName()) {
-		case "welcome.html" :
-			welcomeDefault = readFile("/opt/fb/static_snippets/welcome.html");
-			break;
-		case "story.html":
-			storyDefault = readFile("/opt/fb/static_snippets/story.html");
-			break;
-		case "addform.html":
-			addFormDefault = readFile("/opt/fb/static_snippets/addform.html");
-			break;
-		case "success.html":
-			successDefault = readFile("/opt/fb/static_snippets/success.html");
-			break;
-		case "failure.html":
-			failureDefault = readFile("/opt/fb/static_snippets/failure.html");
-			break;
-		case "recents.html":
-			recentsDefault = readFile("/opt/fb/static_snippets/recents.html");
-			break;
-		case "modifyform.html":
-			modifyFormDefault = readFile("/opt/fb/static_snippets/modifyform.html");
-			break;
-		}
+		System.out.println("Updating file " + f.getName());
+		files.put(f.getName(), readFile(f));
 	}
-	
 	static {
-		new Thread() {
-			public void run() {
-				init();
-			}
-		}.start();
+		init();
 	}
 	private static void init()  {
 		WatchService watcher = null;
@@ -136,6 +105,11 @@ public class Strings {
 				return;
 			}
 		} else log("Directory " + dirFile.getAbsolutePath() + " does not exist");
+		
+		for (File file : dirFile.listFiles()) if (!file.getName().startsWith(".") && file.getName().endsWith(".html")) {
+			files.put(file.getName(), readFile(file));
+			Strings.log("Loading file " + file.getName());
+		}
 		Path dir = dirFile.toPath();
 		try {
 			dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
@@ -143,26 +117,33 @@ public class Strings {
 			log("IOException registering dir with watcher");
 			return;
 		}
-		WatchKey key = null;
-		while (true) {
-			try {
-				key = watcher.take();
-			} catch (InterruptedException e) {
-				log(e.getMessage());
-				return;
-			}
-			for (WatchEvent<?> event : key.pollEvents()) {
-				Kind<?> kind = event.kind();
-				if (kind == StandardWatchEventKinds.ENTRY_MODIFY || kind == StandardWatchEventKinds.ENTRY_CREATE) {
-					File f = dir.resolve((Path) (event.context())).toFile();
-					if (!f.getName().startsWith(".")) {
-						log("MODIFY: " + f.getAbsolutePath());
-						updateFile(f);
+		final WatchService finalWatcher = watcher;
+		new Thread() {
+			public void run() {
+				WatchKey key = null;
+				while (true) {
+					try {
+						key = finalWatcher.take();
+					} catch (InterruptedException e) {
+						log(e.getMessage());
+						return;
 					}
+					for (WatchEvent<?> event : key.pollEvents()) {
+						Kind<?> kind = event.kind();
+						if (kind == StandardWatchEventKinds.ENTRY_MODIFY
+								|| kind == StandardWatchEventKinds.ENTRY_CREATE) {
+							File f = dir.resolve((Path) (event.context())).toFile();
+							if (!f.getName().startsWith(".")) {
+								log("MODIFY: " + f.getAbsolutePath());
+								updateFile(f);
+							}
+						}
+					}
+					if (!key.reset())
+						break;
 				}
 			}
-			if (!key.reset()) break;
-		}
+		}.start();
 	}
 
 	/**

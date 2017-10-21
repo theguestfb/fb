@@ -25,6 +25,16 @@ public class InitDB {
 	public static void main(String[] args) throws Exception {
 
 		Session session = DB.getSession();
+		
+		session.beginTransaction();
+		DBUser legacyUser = new DBUser();
+		legacyUser.setId("fictionbranches1");
+		legacyUser.setPassword("");
+		legacyUser.setAuthor("LegacyAuthor");
+		legacyUser.setEmail(null);
+		session.save(legacyUser);
+		session.getTransaction().commit();
+		
 				
 		Strings.log("Starting import");
 		long stop, start=System.nanoTime();
@@ -66,18 +76,33 @@ public class InitDB {
 		Strings.log("Fin");
 	}
 	
+	private static int count(DBEpisode root) {
+		if (root == null) System.err.println("null");
+		int sum = 1; // count this episode
+		if (root.getChildren() != null) for (DBEpisode child : root.getChildren()) sum+=count(child);
+		return sum;
+	}
+	
 	private static void readStory(Session session, String story, String rootId) {
 		Strings.log("Importing " + story);
 		String dirPath = "/Users/lpreams/Downloads/scrape10/" + story + "/";
 		
 		session.beginTransaction();
 		
+		DBUser rootLegacyUser = session.get(DBUser.class, "fictionbranches1");
+		
 		Strings.log("Loading root of " + story);
-		DBEpisode rootEp = readEpisode(new File(dirPath+"/root"));
+		LegacyEpisodeContainer rootCont = readEpisode(new File(dirPath+"/root"));
+		DBEpisode rootEp = rootCont.ep;
 		rootEp.setParent(null);
 		rootEp.setId(rootId);
-		
+		rootLegacyUser.getEpisodes().add(rootEp);
+		rootEp.setAuthor(rootLegacyUser);
+		DBLegacyAuthor rootLegacyAuthor = new DBLegacyAuthor();
+		rootLegacyAuthor.setId(rootId);
+		rootLegacyAuthor.setAuthor(rootCont.author);
 		session.save(rootEp);
+		session.save(rootLegacyAuthor);
 		session.getTransaction().commit();
 		
 		Strings.log("Loading index of " + story);
@@ -171,42 +196,60 @@ public class InitDB {
 				String childId = newId;
 				String parentId = getParentId(childId);
 				DBEpisode child = new DBEpisode();
+				DBUser legacyUser = session.get(DBUser.class, "fictionbranches1");
 				
 				child.setTitle("(Empty)");
 				child.setLink("(Empty)");
-				child.setAuthor("(Empty)");
+				child.setAuthor(legacyUser);
 				child.setBody("(Empty)");
 				child.setDate(new Date());
+				legacyUser.getEpisodes().add(child);
+				DBLegacyAuthor legacyAuthor = new DBLegacyAuthor();
+				legacyAuthor.setId(childId);
+				legacyAuthor.setAuthor("(Empty)");
 				Strings.log("ID must exist, but doesn't: " + childId);
 				DBEpisode parent = session.get(DBEpisode.class, parentId);
 				child.setId(childId);
 				child.setParent(parent);
 				
 				parent.getChildren().add(child);
+				session.save(legacyAuthor);
 				session.save(child);
 				session.merge(parent);
+				session.merge(legacyUser);
 				session.getTransaction().commit();
 			} else { // otherwise, load the episode from file
 				File f = new File(dirPath + map.get(newId));
 				session.beginTransaction();
 				String childId = newId;
 				String parentId = getParentId(childId);
-				DBEpisode child = readEpisode(f);
-				if (child == null) {
-					throw new RuntimeException("Null child: " + newId + " " + f.getName());
-					/*session.getTransaction().commit();
-					Strings.log("Episode exists but is (partially) empty: " + newId + " " + f.getName());
-					continue;*/
-				}
+				LegacyEpisodeContainer epCont = readEpisode(f);
+				DBEpisode child = epCont.ep;
 				DBEpisode parent = session.get(DBEpisode.class, parentId);
+				DBUser legacyUser = session.get(DBUser.class, "fictionbranches1");
 				child.setId(childId);
 				child.setParent(parent);
-
+				child.setAuthor(legacyUser);
+				legacyUser.getEpisodes().add(child);
+				DBLegacyAuthor legacyAuthor = new DBLegacyAuthor();
+				legacyAuthor.setId(childId);
+				legacyAuthor.setAuthor(epCont.author);
 				parent.getChildren().add(child);
 				session.save(child);
+				session.save(legacyAuthor);
 				session.merge(parent);
+				session.merge(legacyUser);
 				session.getTransaction().commit();
 			}
+		}
+	}
+	
+	private static class LegacyEpisodeContainer {
+		public final DBEpisode ep;
+		public final String author;
+		public LegacyEpisodeContainer(DBEpisode ep, String author) {
+			this.ep = ep;
+			this.author = author;
 		}
 	}
 	
@@ -237,16 +280,17 @@ public class InitDB {
 	}
 	
 	private static DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-	private static DBEpisode readEpisode(File f) {
+	private static LegacyEpisodeContainer readEpisode(File f) {
 		try {
 			Scanner in = new Scanner(f);
 			DBEpisode ep = new DBEpisode();
+			String author = null;
 			try {
 				in.nextLine(); // skip oldId, not needed
 				String id = in.nextLine();//Strings.log(in.nextLine()); // skit newId, not needed
 				ep.setLink(trimTo(in.nextLine(), 254));
 				ep.setTitle(trimTo(in.nextLine(), 254));
-				ep.setAuthor(trimTo(in.nextLine(), 254));
+				author = trimTo(in.nextLine(), 254);
 				String dateString = in.nextLine();
 				try {
 					ep.setDate(df.parse(dateString));
@@ -258,11 +302,11 @@ public class InitDB {
 				in.close();
 				if (ep.getTitle() == null) ep.setTitle("(Empty)");
 				if (ep.getLink() == null) ep.setLink("(Empty)");
+				if (author == null) author = "(Empty)";
 				if (ep.getBody() == null) ep.setBody("");
-				if (ep.getAuthor() == null) ep.setAuthor("(Empty)");
 				if (ep.getDate() == null) ep.setDate(new Date());
 				Strings.log("(partially) empty episode: " + f.getName());
-				return ep;
+				return new LegacyEpisodeContainer(ep, author);
 			}
 			String line = in.nextLine();
 			while (in.hasNext() && line.trim().length() == 0) line = in.nextLine();
@@ -271,7 +315,7 @@ public class InitDB {
 			while (in.hasNext()) body.append(in.nextLine() + "\n");
 			ep.setBody(body.toString());
 			in.close();
-			return ep;
+			return new LegacyEpisodeContainer(ep, author);
 		} catch (FileNotFoundException e) {
 			Strings.log("Error: file not found " + f.getAbsolutePath());
 			throw new RuntimeException();
@@ -281,39 +325,6 @@ public class InitDB {
 	private static String trimTo(String s, int l) {
 		if (s.length() <= l) return s;
 		else return s.substring(0, l);
-	}
-	
-	private static void yawywOld(Session session) {
-		Strings.log("Making parent episode");
-
-		// DB.addEp() cannot be used since it requires
-		// a parent ID and the root has no parent. Instead,
-		// it must be created and added manually
-		
-		// The following block could later be used
-		// to initialize multiple stories
-
-		// Create the episode
-		DBEpisode parent = new DBEpisode();
-		parent.setTitle("And So It Begins...");
-		parent.setBody(Strings.readFile("ep1.txt"));
-		parent.setLink("");
-		parent.setAuthor("Zach");
-		parent.setId("2");
-		parent.setDate(new Date());
-
-		// Commit the episode to the DB
-		
-		session.beginTransaction();
-		String parentID = (String) session.save(parent);
-		session.getTransaction().commit();
-
-		// Now we can use DB.addEp() for the first child
-		DBEpisode child = DB.addEp("1", "episode two", "Enter the Bitch", Strings.readFile("ep2.txt"),
-				"Jezzi_Belle_Stewart", new Date());
-
-		Strings.log("Root ID: " + parentID);
-		Strings.log("Chld ID: " + child.getId());
 	}
 	
 }

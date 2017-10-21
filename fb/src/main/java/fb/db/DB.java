@@ -1,6 +1,8 @@
 package fb.db;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -18,6 +20,9 @@ public class DB {
 		configuration.addAnnotatedClass(DBEpisode.class);	
 		configuration.addAnnotatedClass(DBRecents.class);	
 		configuration.addAnnotatedClass(DBLegacyId.class);	
+		configuration.addAnnotatedClass(DBUser.class);	
+		configuration.addAnnotatedClass(DBEmail.class);	
+		configuration.addAnnotatedClass(DBLegacyAuthor.class);
 		
 		StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
 				.applySettings(configuration.getProperties());
@@ -40,13 +45,13 @@ public class DB {
 	 * @param author author of new episode
 	 * @return HTML success page
 	 */
-	public static DBEpisode addEp(String id, String link, String title, String body, String author, Date date) {
-		Session session = DB.getSession();
+	public static DBEpisode addEp(String id, String link, String title, String body, DBUser author, Date date) {
 		synchronized (dbLock) {
+			Session session = DB.getSession();
 			session.beginTransaction();
 			DBEpisode parent = session.get(DBEpisode.class, id);
 			DBRecents recents = session.get(DBRecents.class, 1);
-			
+			author = session.get(DBUser.class, author.getId());
 			DBEpisode child;
 			if (parent == null)
 				child = null;
@@ -85,20 +90,22 @@ public class DB {
 	 * @param author new author of new episode
 	 * @return false if id not found
 	 */
-	public static boolean modifyEp(String id, String link, String title, String body, String author) {
-		Session session = DB.getSession();
+	public static boolean modifyEp(String id, String link, String title, String body) {
 		synchronized (dbLock) {
+			Session session = DB.getSession();
 			session.beginTransaction();
 			DBEpisode ep = session.get(DBEpisode.class, id);
-			if (ep == null) return false;
+			if (ep == null) {
+				getSession().getTransaction().commit();
+				return false;
+			}
 
 			ep.setTitle(title);
 			ep.setLink(link);
 			ep.setBody(body);
-			ep.setAuthor(author);
 
 			session.merge(ep);
-			Strings.log(String.format("Modified: <%s> %s %s", author, title, ep.getId()));
+			Strings.log(String.format("Modified: <%s> %s %s", title, ep.getId(), getAuthor(ep)));
 
 			session.getTransaction().commit();
 			return true;
@@ -151,5 +158,110 @@ public class DB {
 			session.getTransaction().commit();
 			return recents;
 		}
+	}
+	
+	/**
+	 * Adds a new user to the database
+	 * @param email
+	 * @param password
+	 * @param author
+	 * @return null if email already exists, else user ID
+	 */
+	public static String addUser(String email, String password, String author) {
+		synchronized (dbLock) {
+			getSession().beginTransaction();
+			if (getSession().get(DBEmail.class, email) != null) {
+				getSession().getTransaction().commit();
+				return null;
+			}
+			String id = newUserId();
+			// Make sure id doesn't already exist
+			while (getSession().get(DBUser.class, id) != null) id = newUserId();
+			DBUser user = new DBUser();
+			DBEmail dbemail = new DBEmail();
+			dbemail.setEmail(email);
+			user.setId(id);
+			user.setAuthor(author);
+			user.setEmail(dbemail);
+			user.setPassword(password);
+			dbemail.setUser(user);
+			getSession().save(user);
+			getSession().save(dbemail);
+			getSession().getTransaction().commit();
+			return id;
+		}
+	}
+	
+	/**
+	 * Modifies a user in the database
+	 * @param password null if unchanged, else HASHED password
+	 * @param author null if unchanged
+	 * @return false if user id does not exist
+	 */
+	public static boolean modifyUser(String id, String password, String author) {
+		synchronized (dbLock) {
+			getSession().beginTransaction();
+			DBUser user = getSession().get(DBUser.class, id);
+			if (user == null) {
+				getSession().getTransaction().commit();
+				return false;
+			}
+			if (author != null) user.setAuthor(author);
+			if (password != null) user.setPassword(password);
+			getSession().save(user);
+			getSession().getTransaction().commit();
+			return true;
+		}
+	}
+
+	/**
+	 * Get a DBUser by id
+	 * @param id
+	 * @return null if id does not exist
+	 */
+	public static DBUser getUser(String id) {
+		synchronized (dbLock) {
+			getSession().beginTransaction();
+			DBUser user = getSession().get(DBUser.class, id);
+			getSession().getTransaction().commit();
+			return user;
+		}
+	}
+	
+	/**
+	 * Get a DBUser by email address
+	 * @param email
+	 * @return null if email does not exist
+	 */
+	public static DBUser getUserByEmail(String email) {
+		synchronized (dbLock) {
+			getSession().beginTransaction();
+			DBEmail dbemail = getSession().get(DBEmail.class, email);
+			getSession().getTransaction().commit();
+			if (dbemail == null) return null;
+			return dbemail.getUser();
+		}
+	}
+	
+	/**
+	 * Gets the author name of an episode, whether it's a legacy episode or not
+	 * @param ep
+	 * @return
+	 */
+	public static String getAuthor(DBEpisode ep) {
+		if (!ep.getAuthor().getId().equals("fictionbranches1")) return ep.getAuthor().getAuthor();
+		else return getSession().get(DBLegacyAuthor.class, ep.getId()).getAuthor();
+	}
+	
+	private static ArrayList<Character> userIdChars = new ArrayList<>();
+	public static Random r = new Random();
+	static {
+		for (char c='a'; c<='z'; ++c) userIdChars.add(c);
+		for (char c='0'; c<='9'; ++c) userIdChars.add(c);
+	}
+	private static String newUserId() {
+		StringBuilder sb = new StringBuilder();
+		for (int i=0; i<16; ++i) sb.append(userIdChars.get(r.nextInt(userIdChars.size())));
+		return sb.toString();
 	}
 }

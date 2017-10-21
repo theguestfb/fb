@@ -12,21 +12,18 @@
 $ACCOUNT
 </div>
 
-	<h4><b>ANY EPISODES ADDED TO THE TEST SITE <i><u>WILL</i></u> BE DELETED IN THE NEAR FUTURE</b></h4>
-	<h1>Modifying '$TITLE'</h1>
-	<form action= "../modifypost/$ID" method="post">
+	<h1>Log in to Fiction Branches</h1>
+	<form action= "/fb/loginpost" method="post">
 		<p>
-			Title <input type= "text" name= "title" size="100" value="$TITLE"></input>
-		</p>
-		<p>
-			Body <br/><textarea name= "body" rows= "40">$BODY</textarea>
-		</p>
-		<p>
-			Link text <input type= "text" name= "link" size="100" value="$LINK"></input>
-		</p>
+                        Email: <input type= "text" name= "email" size="100"/><br/>
+                </p>
+                <p>
+                        Password: <input type= "password" name= "password" size="100"/><br/>
+                </p>
 		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
 		<input type= "submit" value= "Submit"/>
 	</form>
+	<p>$EXTRA</p>
 	<link rel="import" href="/static/footer.html">
 </body>
 </html>
