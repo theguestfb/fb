@@ -12,22 +12,26 @@ import org.hibernate.cfg.Configuration;
 import fb.Strings;
 
 public class DB {
-	private static SessionFactory sessionFactory;
+	private static SessionFactory sessionFactory = null;
 	private static Session session;
 	private static Object dbLock = new Object();
 	static {
-		Configuration configuration = new Configuration().configure();
-		configuration.addAnnotatedClass(DBEpisode.class);	
-		configuration.addAnnotatedClass(DBRecents.class);	
-		configuration.addAnnotatedClass(DBLegacyId.class);	
-		configuration.addAnnotatedClass(DBUser.class);	
-		configuration.addAnnotatedClass(DBEmail.class);	
-		configuration.addAnnotatedClass(DBLegacyAuthor.class);
-		
-		StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
-				.applySettings(configuration.getProperties());
-		sessionFactory = configuration.buildSessionFactory(builder.build());
-		session = sessionFactory.openSession();
+		synchronized (dbLock) {
+			if (sessionFactory == null) {
+				Configuration configuration = new Configuration().configure();
+				configuration.addAnnotatedClass(DBEpisode.class);
+				configuration.addAnnotatedClass(DBRecents.class);
+				configuration.addAnnotatedClass(DBLegacyId.class);
+				configuration.addAnnotatedClass(DBUser.class);
+				configuration.addAnnotatedClass(DBEmail.class);
+				configuration.addAnnotatedClass(DBLegacyAuthor.class);
+
+				StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
+						.applySettings(configuration.getProperties());
+				sessionFactory = configuration.buildSessionFactory(builder.build());
+			}
+			if (session == null) session = sessionFactory.openSession();
+		}
 	}
 
 	static SessionFactory getSessionFactory() {
@@ -264,8 +268,9 @@ public class DB {
 	 * @return
 	 */
 	public static String getAuthor(DBEpisode ep) {
-		if (!ep.getAuthor().getId().equals("fictionbranches1")) return ep.getAuthor().getAuthor();
-		else return getSession().get(DBLegacyAuthor.class, ep.getId()).getAuthor();
+		if (!ep.getAuthor().getId().equals("fictionbranches1")) synchronized (dbLock) {
+			return getSession().get(DBLegacyAuthor.class, ep.getId()).getAuthor();
+		} else return ep.getAuthor().getAuthor();
 	}
 	
 	public static boolean changeAuthor(String userId, String author) {
@@ -318,13 +323,16 @@ public class DB {
 	 * @return true if user exists
 	 */
 	public static boolean setAdmin(String userId) {
-		session.beginTransaction();
-		DBUser user = session.get(DBUser.class, userId);
-		if (user == null) return false;
-		user.setLevel((byte)100);
-		session.merge(user);
-		session.getTransaction().commit();
-		return true;
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null)
+				return false;
+			user.setLevel((byte) 100);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
 	}
 	
 	/**
@@ -333,13 +341,16 @@ public class DB {
 	 * @return true if user exists
 	 */
 	public static boolean setMod(String userId) {
-		session.beginTransaction();
-		DBUser user = session.get(DBUser.class, userId);
-		if (user == null) return false;
-		user.setLevel((byte)10);
-		session.merge(user);
-		session.getTransaction().commit();
-		return true;
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null)
+				return false;
+			user.setLevel((byte) 10);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
 	}
 	
 	/**
@@ -348,13 +359,16 @@ public class DB {
 	 * @return true if user exists
 	 */
 	public static boolean setNormalUser(String userId) {
-		session.beginTransaction();
-		DBUser user = session.get(DBUser.class, userId);
-		if (user == null) return false;
-		user.setLevel((byte)1);
-		session.merge(user);
-		session.getTransaction().commit();
-		return true;
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null)
+				return false;
+			user.setLevel((byte) 1);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
 	}
 	
 	private static ArrayList<Character> userIdChars = new ArrayList<>();

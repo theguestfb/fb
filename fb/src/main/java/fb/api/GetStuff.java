@@ -13,6 +13,8 @@ import javax.ws.rs.core.Response;
 
 import fb.Story;
 import fb.Strings;
+import fb.db.DB;
+import fb.db.DBEpisode;
 
 @Path("")
 public class GetStuff {
@@ -108,6 +110,29 @@ public class GetStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getrandom(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 4, fbtoken)).build();
+	}
+	
+	/**
+	 * Gets an episode by its id, least children first sort
+	 * 
+	 * @param id
+	 *            id of episode (1-7-4-...-3)
+	 * @return HTML episode
+	 */
+	@GET
+	@Path("getraw/{id}")
+	@Produces(MediaType.TEXT_PLAIN + "; charset=UTF-8")
+	public String getraw(@PathParam("id") String id) {
+		DBEpisode ep = DB.getEp(id);
+		if (ep == null) return "Not found: " + id;
+		StringBuilder sb = new StringBuilder();
+		sb.append(ep.getId() + "\n");
+		sb.append(ep.getLink() + "\n");
+		sb.append(ep.getTitle() + "\n");
+		sb.append(DB.getAuthor(ep) + "\n");
+		sb.append(Story.outputDate.format(ep.getDate()) + "\n");
+		sb.append(ep.getBody() + "\n");
+		return sb.toString();
 	}
 
 	/**

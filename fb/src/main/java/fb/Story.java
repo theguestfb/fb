@@ -5,10 +5,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.TreeSet;
 
 import javax.ws.rs.core.Cookie;
 
+import org.commonmark.node.Block;
+import org.commonmark.node.Heading;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
@@ -94,7 +97,7 @@ public class Story {
 		}
 	}
 	
-	static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
+	public static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
 	
 	/**
 	 * Gets an list of recent episodes
@@ -274,9 +277,21 @@ public class Story {
 	private static String formatBody(String body) {
 		String ret = body;
 		ret = HtmlEscapers.htmlEscaper().escape(ret);
-		ret = HtmlRenderer.builder().build().render(Parser.builder().build().parse(ret));
+		ret = HtmlRenderer.builder().build().render(Parser.builder().enabledBlockTypes(enabledBlockTypes).build().parse(ret));
 		return ret;
 	}
+	
+	private static final HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
+	static {
+		/*enabledBlockTypes.add(FencedCodeBlock.class);
+		enabledBlockTypes.add(HtmlBlock.class);
+		enabledBlockTypes.add(ThematicBreak.class);
+		enabledBlockTypes.add(IndentedCodeBlock.class);
+		enabledBlockTypes.add(BlockQuote.class);
+		enabledBlockTypes.add(ListBlock.class);*/
+		enabledBlockTypes.add(Heading.class);
+	}
+	
 	
 	private static String notFound(String id) {
 		return "<html><head><title>Fiction Branches</title></head><body><h1>Not found</h1>" + id + "</body></html>";

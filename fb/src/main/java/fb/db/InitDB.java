@@ -27,6 +27,9 @@ public class InitDB {
 
 		Session session = DB.getSession();
 		
+		System.out.print(DB.getEp("3-1-1-3-7").getBody());
+		
+		/*
 		long stop, start=System.nanoTime();
 		
 		int c = count(DB.getEp("4"));
@@ -49,7 +52,7 @@ public class InitDB {
 		System.out.println("finished yawyw: " + c + " " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		/*session.beginTransaction();
+		session.beginTransaction();
 		DBUser legacyUser = new DBUser();
 		legacyUser.setId("fictionbranches1");
 		legacyUser.setLevel((byte)1);
