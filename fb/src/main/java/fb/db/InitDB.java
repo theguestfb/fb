@@ -12,6 +12,7 @@ import java.util.Scanner;
 import java.util.TreeMap;
 
 import org.hibernate.Session;
+import org.mindrot.jbcrypt.BCrypt;
 
 import fb.Comparators;
 import fb.Strings;
@@ -26,14 +27,46 @@ public class InitDB {
 
 		Session session = DB.getSession();
 		
-		session.beginTransaction();
+		long stop, start=System.nanoTime();
+		
+		int c = count(DB.getEp("4"));
+		stop = System.nanoTime();
+		System.out.println("finished tfog: " + c + " " + (((double)(stop-start))/1000000000.0));
+		start = System.nanoTime();
+		
+		c = count(DB.getEp("3"));
+		stop = System.nanoTime();
+		System.out.println("finished af: " + c + " " + (((double)(stop-start))/1000000000.0));
+		start = System.nanoTime();
+		
+		c = count(DB.getEp("1"));
+		stop = System.nanoTime();
+		System.out.println("finished forum: " + c + " " + (((double)(stop-start))/1000000000.0));
+		start = System.nanoTime();
+		
+		c = count(DB.getEp("2"));
+		stop = System.nanoTime();
+		System.out.println("finished yawyw: " + c + " " + (((double)(stop-start))/1000000000.0));
+		start = System.nanoTime();
+		
+		/*session.beginTransaction();
 		DBUser legacyUser = new DBUser();
 		legacyUser.setId("fictionbranches1");
+		legacyUser.setLevel((byte)1);
 		legacyUser.setPassword("");
 		legacyUser.setAuthor("LegacyAuthor");
 		legacyUser.setEmail(null);
 		session.save(legacyUser);
 		session.getTransaction().commit();
+		
+		try (Scanner in = new Scanner(System.in)) {
+			
+			System.out.println("enter root password:");
+			String rootpw = in.nextLine();
+			
+			String rootId = DB.addUser("admin@fictionbranches.net", BCrypt.hashpw(rootpw,BCrypt.gensalt(10)), "Fiction Branches");
+			DB.setAdmin(rootId);
+		}
 		
 				
 		Strings.log("Starting import");
@@ -69,7 +102,7 @@ public class InitDB {
 		session.beginTransaction();
 		session.save(recents);
 		session.getTransaction().commit();
-		Strings.log("Added recents");
+		Strings.log("Added recents");*/
 		
 		session.close();
 		DB.getSessionFactory().close();
@@ -288,7 +321,7 @@ public class InitDB {
 			try {
 				in.nextLine(); // skip oldId, not needed
 				String id = in.nextLine();//Strings.log(in.nextLine()); // skit newId, not needed
-				ep.setLink(trimTo(in.nextLine(), 254));
+				ep.setLink(trimTo(in.nextLine(), 254).replace("%3f", "?"));
 				ep.setTitle(trimTo(in.nextLine(), 254));
 				author = trimTo(in.nextLine(), 254);
 				String dateString = in.nextLine();

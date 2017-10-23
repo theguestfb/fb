@@ -18,9 +18,18 @@ import javax.ws.rs.core.Response;
 import fb.Accounts;
 import fb.Accounts.FBLoginException;
 import fb.Strings;
+import fb.db.DBUser;
 
 @Path("")
 public class AccountStuff {
+	
+	@GET
+	@Path("user/{id}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response user(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Accounts.getUserPage(id,fbtoken)).build();
+	}
+	
 	/**
 	 * Returns the form for logging in
 	 * 
@@ -30,8 +39,16 @@ public class AccountStuff {
 	@Path("login")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response login(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (Accounts.isLoggedIn(fbtoken)) return Response.ok("Already looged in").build();
+		if (Accounts.isLoggedIn(fbtoken)) return Response.ok("Already logged in").build();
 		return Response.ok(Strings.getFile("loginform.html", fbtoken).replace("$EXTRA", "")).build();
+	}
+	
+	@GET
+	@Path("logout")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response logout(@CookieParam("fbtoken") Cookie fbtoken) {
+		Accounts.logout(fbtoken);
+		return Response.temporaryRedirect(URI.create("/fb")).build();
 	}
 
 	/**
@@ -120,5 +137,103 @@ public class AccountStuff {
 			}
 		}
 		return Response.ok(Accounts.create(email, password, password2, author)).build();
+	}
+	
+	@GET
+	@Path("useraccount")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response useraccount(@CookieParam("fbtoken") Cookie fbtoken) {
+		DBUser user = Accounts.getUser(fbtoken);
+		if (user == null) return Response.ok("You must be logged in to do that").build();
+		return Response.ok(Strings.getFile("useraccount.html", fbtoken).replace("$ID", user.getId())).build();
+	}
+	
+	@GET
+	@Path("changeauthor")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changeauthor(@CookieParam("fbtoken") Cookie fbtoken) {
+		DBUser user = Accounts.getUser(fbtoken);
+		if (user == null) return Response.ok("You must be logged in to do that").build();
+		return Response.ok(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "")).build();
+	}
+	
+	@POST
+	@Path("changeauthorpost")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changeauthorpost(@FormParam("author") String author, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		String response = Accounts.changeAuthor(fbtoken, author);
+		if (response != null) return Response.ok(response).build(); //failed, try again
+		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+	}
+	
+	@GET
+	@Path("changepassword")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {
+		DBUser user = Accounts.getUser(fbtoken);
+		if (user == null) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
+		return Response.ok(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "")).build();
+	}
+	
+	@POST
+	@Path("changepasswordpost")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changepasswordpost(@FormParam("newpass") String newpass, @FormParam("newpass2") String newpass2 ,@FormParam("password") String password, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		String response = Accounts.changePassword(fbtoken, newpass, newpass2, password);
+		if (response != null) return Response.ok(response).build(); //failed, try again
+		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+	}
+	
+	@GET
+	@Path("changeemail")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changeemail(@CookieParam("fbtoken") Cookie fbtoken) {
+		DBUser user = Accounts.getUser(fbtoken);
+		if (user == null) return Response.ok("You must be logged in to do that").build();
+		return Response.ok(Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "")).build();
+	}
+	
+	@POST
+	@Path("changeemailpost")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changeemailpost(@FormParam("email") String email, @FormParam("password") String password, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		return Response.ok(Accounts.changeEmail(fbtoken, email, password)).build();
+	}
+	
+	/**
+	 * Confirms that email address exists and is accessible by user
+	 * @param token
+	 * @return
+	 */
+	@GET
+	@Path("confirmemailchange/{token}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response confirmemailchange(@PathParam("token") String token, @CookieParam("fbtoken") Cookie fbtoken) {
+		Strings.log("Verifying: " + token);
+		return Response.ok(Accounts.verifyNewEmail(token, fbtoken)).build();
 	}
 }

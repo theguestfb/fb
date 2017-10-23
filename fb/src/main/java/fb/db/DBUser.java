@@ -24,14 +24,15 @@ public class DBUser {
 	private String author;
 	
 	private String password;
-
-	@OneToOne
-	public DBEmail getEmail() {
-		return email;
-	}
+	
+	private byte level; // 1=user, 10=mod, 100=admin, 
 	
 	@OneToMany(mappedBy = "author")
 	private List<DBEpisode> episodes = new ArrayList<>();
+	
+	public DBEmail getEmail() {
+		return email;
+	}
 
 	public void setEmail(DBEmail email) {
 		this.email = email;
@@ -67,6 +68,14 @@ public class DBUser {
 
 	public void setEpisodes(List<DBEpisode> episodes) {
 		this.episodes = episodes;
+	}
+
+	public byte getLevel() {
+		return level;
+	}
+
+	public void setLevel(byte level) {
+		this.level = level;
 	}
 	
 }

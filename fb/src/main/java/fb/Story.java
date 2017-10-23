@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.TreeSet;
 
 import javax.ws.rs.core.Cookie;
 
@@ -66,19 +67,34 @@ public class Story {
 			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
 				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>\n");
 			}
-			String author = DB.getAuthor(ep);
+			
+			String modify = "", addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
+			
+			DBUser currentUser = Accounts.getUser(token);
+			if (currentUser != null) {
+				if (ep.getAuthor().getId().equals(currentUser.getId())) modify = "<a href=../modify/" + id + ">Modify your episode</a></p>";
+				else if (currentUser.getLevel() >= ((byte)10)) modify = "<a href=../modify/" + id + ">Modify as moderator</a></p>";
+				addEp = "<a href=../add/" + id + ">Add a new episode</a>";
+			}
+						
+			String author,authorName = HtmlEscapers.htmlEscaper().escape(DB.getAuthor(ep));
+			if (ep.getAuthor().getId().equals("fictionbranches1")) author = authorName;
+			else author = "<a href=/fb/user/" + ep.getAuthor().getId() + ">" + authorName + "</a>";
+			
 			return Strings.getFile("story.html", token)
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
 					.replace("$BODY", formatBody(ep.getBody()))
-					.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(author))
+					.replace("$AUTHOR", author)
 					.replace("$PARENTID", (((ep.getParent() == null) || (ep.getParent().getId().equals(ep.getId()))) ? ("..") : (HtmlEscapers.htmlEscaper().escape(ep.getParent().getId()))))
 					.replace("$ID", id)
 					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.getDate())))
+					.replace("$MODIFY", modify)
+					.replace("$ADDEP", addEp)
 					.replace("$CHILDREN", sb.toString());
 		}
 	}
 	
-	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
+	static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
 	
 	/**
 	 * Gets an list of recent episodes
@@ -121,7 +137,7 @@ public class Story {
 	 * @return HTML form
 	 */
 	public static String addForm(String id, Cookie token) {
-		if (!Accounts.isLoggedIn(token)) return "You must be logged in to add episodes";
+		if (!Accounts.isLoggedIn(token)) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes");
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		return Strings.getFile("addform.html", token)
@@ -139,7 +155,7 @@ public class Story {
 	 */
 	public static String addPost(String id, String link, String title, String body, Cookie token) {
 		DBUser user = Accounts.getUser(token);
-		if (user == null) return "You must be logged in to add episodes";
+		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes");
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
@@ -164,8 +180,8 @@ public class Story {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		DBUser user = Accounts.getUser(token);
-		if (user == null) return "You must be logged in to do that";
-		if (!user.getId().equals(ep.getAuthor().getId())) return "You can only edit episodes that you wrote";
+		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
+		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
 		return Strings.getFile("modifyform.html", token)
 				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
 				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.getBody()))
@@ -186,8 +202,8 @@ public class Story {
 		DBEpisode ep = DB.getEp(id);
 		if (ep == null) return notFound(id);
 		DBUser user = Accounts.getUser(token);
-		if (user == null) return "You must be logged in to do that";
-		if (!user.getId().equals(ep.getAuthor().getId())) return "You can only edit episodes that you wrote";
+		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
+		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
 		
 		link = link.trim();
 		title = title.trim();
@@ -214,19 +230,30 @@ public class Story {
 	 */
 	private static String checkEpisode(String link, String title, String body) {
 		StringBuilder errors = new StringBuilder();
-		if (link.length() == 0) errors.append("Link text cannot be empty<br/>");
-		if (title.length() == 0) errors.append("Title cannot be empty<br/>");
-		if (body.length() == 0) errors.append("Body cannot be empty<br/>");
+		if (link.length() == 0) errors.append("Link text cannot be empty<br/>\n");
+		if (title.length() == 0) errors.append("Title cannot be empty<br/>\n");
+		if (body.length() == 0) errors.append("Body cannot be empty<br/>\n");
 		
-		if (link.length() > 255) errors.append("Link text cannot be longer than 255 (" + link.length() + ")<br/>");
-		if (title.length() > 255) errors.append("Title cannot be longer than 255 (" + title.length() + ")<br/>");
-		if (body.length() > 100000) errors.append("Body cannot be longer than 100000 (" + body.length() + ")<br/>");
+		if (link.length() > 255) errors.append("Link text cannot be longer than 255 (" + link.length() + ")<br/>\n");
+		if (title.length() > 255) errors.append("Title cannot be longer than 255 (" + title.length() + ")<br/>\n");
+		if (body.length() > 100000) errors.append("Body cannot be longer than 100000 (" + body.length() + ")<br/>\n");
+				
+		TreeSet<String> list = new TreeSet<>();
+		for (String s : replacers) if (link.contains(s)) list.add(s);
+		for (String s : replacers) if (title.contains(s)) list.add(s);
+		for (String s : replacers) if (body.contains(s)) list.add(s);
+		if (list.size() > 0) {
+			errors.append("Link text, title, and body may not contain any of the following strings: ");
+			for (String s : list) errors.append("\"" + s + "\"");
+			errors.append("<br/>\n");
+		}
+		
 		if (errors.length() > 0) return errors.toString();
 		
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
 	
-
+	private static final String[] replacers = {"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES"};
 	
 	/**
 	 * Escape body text and convert markdown/formatting to HTML

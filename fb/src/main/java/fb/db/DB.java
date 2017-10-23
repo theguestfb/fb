@@ -163,7 +163,7 @@ public class DB {
 	/**
 	 * Adds a new user to the database
 	 * @param email
-	 * @param password
+	 * @param password HASHED password (NOT PLAINTEXT)
 	 * @param author
 	 * @return null if email already exists, else user ID
 	 */
@@ -181,6 +181,7 @@ public class DB {
 			DBEmail dbemail = new DBEmail();
 			dbemail.setEmail(email);
 			user.setId(id);
+			user.setLevel((byte)1);
 			user.setAuthor(author);
 			user.setEmail(dbemail);
 			user.setPassword(password);
@@ -209,6 +210,20 @@ public class DB {
 			if (author != null) user.setAuthor(author);
 			if (password != null) user.setPassword(password);
 			getSession().save(user);
+			getSession().getTransaction().commit();
+			return true;
+		}
+	}
+	
+	public static boolean changeUserLevel(String id, byte newLevel) {
+		synchronized (dbLock) {
+			getSession().beginTransaction();
+			DBUser user = getSession().get(DBUser.class, id);
+			if (user == null) {
+				getSession().getTransaction().commit();
+				return false;
+			}
+			user.setLevel(newLevel);
 			getSession().getTransaction().commit();
 			return true;
 		}
@@ -251,6 +266,95 @@ public class DB {
 	public static String getAuthor(DBEpisode ep) {
 		if (!ep.getAuthor().getId().equals("fictionbranches1")) return ep.getAuthor().getAuthor();
 		else return getSession().get(DBLegacyAuthor.class, ep.getId()).getAuthor();
+	}
+	
+	public static boolean changeAuthor(String userId, String author) {
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null) return false;
+			user.setAuthor(author);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
+	}
+	
+	public static boolean changePassword(String userId, String newpass) {
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null) return false;
+			user.setPassword(newpass);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
+	}
+	
+	public static boolean changeEmail(String userId, String email) {
+		synchronized (dbLock) {
+			session.beginTransaction();
+			DBUser user = session.get(DBUser.class, userId);
+			if (user == null) return false;
+			DBEmail oldEmail = user.getEmail();
+			if (oldEmail == null) return false;
+			DBEmail newEmail = new DBEmail();
+			newEmail.setUser(user);
+			newEmail.setEmail(email);
+			user.setEmail(newEmail);
+			
+			session.delete(oldEmail);
+			session.save(newEmail);
+			session.merge(user);
+			session.getTransaction().commit();
+			return true;
+		}
+	}
+	
+	/**
+	 * Sets an account as an admin
+	 * @param userId
+	 * @return true if user exists
+	 */
+	public static boolean setAdmin(String userId) {
+		session.beginTransaction();
+		DBUser user = session.get(DBUser.class, userId);
+		if (user == null) return false;
+		user.setLevel((byte)100);
+		session.merge(user);
+		session.getTransaction().commit();
+		return true;
+	}
+	
+	/**
+	 * Sets an account as a mod
+	 * @param userId
+	 * @return true if user exists
+	 */
+	public static boolean setMod(String userId) {
+		session.beginTransaction();
+		DBUser user = session.get(DBUser.class, userId);
+		if (user == null) return false;
+		user.setLevel((byte)10);
+		session.merge(user);
+		session.getTransaction().commit();
+		return true;
+	}
+	
+	/**
+	 * Sets an account as a normal user (not mod or admin)
+	 * @param userId
+	 * @return true if user exists
+	 */
+	public static boolean setNormalUser(String userId) {
+		session.beginTransaction();
+		DBUser user = session.get(DBUser.class, userId);
+		if (user == null) return false;
+		user.setLevel((byte)1);
+		session.merge(user);
+		session.getTransaction().commit();
+		return true;
 	}
 	
 	private static ArrayList<Character> userIdChars = new ArrayList<>();
