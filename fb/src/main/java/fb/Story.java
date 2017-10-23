@@ -151,22 +151,32 @@ public class Story {
 	 * @param title title of new episode
 	 * @param body body of new episode
 	 * @param author author of new episode
-	 * @return HTML success page
+	 * @return ID of new episode
+	 * @throws EpisodeException if there's any error, e.getMessage() will contain HTML page for error
 	 */
-	public static String addPost(String id, String link, String title, String body, Cookie token) {
+	public static String addPost(String id, String link, String title, String body, Cookie token) throws EpisodeException {
 		DBUser user = Accounts.getUser(token);
-		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes");
+		if (user == null) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes"));
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
 		
 		String errors = checkEpisode(link, title, body);
-		if (errors != null) return Strings.getFile("failure.html", token).replace("$REASON", errors);
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 		
 		DBEpisode child = DB.addEp(id, link, title, body, user, new Date());
-		if (child == null) return Strings.getFile("failure.html", token).replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)");
+		if (child == null)  throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)"));
 				
-		return Strings.getFile("success.html", token).replace("$ID", child.getId() + "");	
+		//return Strings.getFile("success.html", token).replace("$ID", child.getId() + "");
+		return child.getId();
+	}
+	
+	public static class EpisodeException extends Exception {
+		/** */
+		private static final long serialVersionUID = 5020407245081273282L;
+		public EpisodeException(String message) {
+			super(message);
+		}
 	}
 	
 	/////////////////////////////////////// functions to modify episodes \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -196,27 +206,28 @@ public class Story {
 	 * @param title title of new episode
 	 * @param body body of new episode
 	 * @param author author of new episode
-	 * @return HTML success page
+	 * @return id of modified episode
+	 * @throws EpisodeException if error occurs, e.getMessage() will contain HTML page with error
 	 */
-	public static String modifyPost(String id, String link, String title, String body, Cookie token) {
+	public static String modifyPost(String id, String link, String title, String body, Cookie token) throws EpisodeException {
 		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return notFound(id);
+		if (ep == null) throw new EpisodeException(notFound(id));
 		DBUser user = Accounts.getUser(token);
-		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
-		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
+		if (user == null) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that"));
+		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote"));
 		
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
 		
 		String errors = checkEpisode(link, title, body);
-		if (errors != null) return Strings.getFile("failure.html", token).replace("$REASON", errors);
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 				
 		if (!DB.modifyEp(id, link, title, body)) {
-			return Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id);
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id));
 		}
 				
-		return Strings.getFile("success.html", token).replace("$ID", id + "");	
+		return id;	
 	}
 	
 	/////////////////////////////////////// utility functions \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
