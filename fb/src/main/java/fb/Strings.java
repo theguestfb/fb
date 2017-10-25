@@ -40,7 +40,6 @@ public class Strings {
 	
 	public static String SMTP_PASSWORD = readFile("/opt/fb/smtp_password.txt");
 	public static String RECAPTCHA_SECRET = readFile("/opt/fb/recaptcha_secret.txt");
-	public static String modifyPasswordhash = readFile("/opt/fb/modify_pass.txt");
 	
 	public static String getFile(String name, Cookie fbtoken) {
 		return files.get(name).replace("$ACCOUNT", Accounts.getAccount(fbtoken));

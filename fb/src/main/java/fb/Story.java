@@ -10,6 +10,9 @@ import java.util.TreeSet;
 
 import javax.ws.rs.core.Cookie;
 
+import org.commonmark.Extension;
+import org.commonmark.ext.autolink.AutolinkExtension;
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.node.Block;
 import org.commonmark.node.Heading;
 import org.commonmark.parser.Parser;
@@ -75,13 +78,13 @@ public class Story {
 			
 			DBUser currentUser = Accounts.getUser(token);
 			if (currentUser != null) {
-				if (ep.getAuthor().getId().equals(currentUser.getId())) modify = "<a href=../modify/" + id + ">Modify your episode</a></p>";
-				else if (currentUser.getLevel() >= ((byte)10)) modify = "<a href=../modify/" + id + ">Modify as moderator</a></p>";
+				if (ep.getAuthor().getId().equals(currentUser.getId())) modify = "<br/><br/><a href=../modify/" + id + ">Modify your episode</a>";
+				else if (currentUser.getLevel() >= ((byte)10)) modify = "<br/><br/><a href=../modify/" + id + ">Modify as moderator</a>";
 				addEp = "<a href=../add/" + id + ">Add a new episode</a>";
 			}
 						
 			String author,authorName = HtmlEscapers.htmlEscaper().escape(DB.getAuthor(ep));
-			if (ep.getAuthor().getId().equals("fictionbranches1")) author = authorName;
+			if (ep.getAuthor().getId().equals(DB.LEGACY_ID)) author = authorName;
 			else author = "<a href=/fb/user/" + ep.getAuthor().getId() + ">" + authorName + "</a>";
 			
 			return Strings.getFile("story.html", token)
@@ -166,12 +169,11 @@ public class Story {
 		
 		String errors = checkEpisode(link, title, body);
 		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
-		
-		DBEpisode child = DB.addEp(id, link, title, body, user, new Date());
-		if (child == null)  throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "ERROR: unable to add episode (talk to Phoenix if you see this)"));
-				
-		//return Strings.getFile("success.html", token).replace("$ID", child.getId() + "");
-		return child.getId();
+		try {
+			return DB.addEp(id, link, title, body, user, new Date()).getId();
+		} catch (EpisodeException e) {
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
+		}
 	}
 	
 	public static class EpisodeException extends Exception {
@@ -277,19 +279,22 @@ public class Story {
 	private static String formatBody(String body) {
 		String ret = body;
 		ret = HtmlEscapers.htmlEscaper().escape(ret);
-		ret = HtmlRenderer.builder().build().render(Parser.builder().enabledBlockTypes(enabledBlockTypes).build().parse(ret));
+		ret = renderer.render(parser.parse(ret));
 		return ret;
 	}
-	
-	private static final HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
+	private static Parser parser;
+	private static HtmlRenderer renderer;
 	static {
-		/*enabledBlockTypes.add(FencedCodeBlock.class);
-		enabledBlockTypes.add(HtmlBlock.class);
-		enabledBlockTypes.add(ThematicBreak.class);
-		enabledBlockTypes.add(IndentedCodeBlock.class);
-		enabledBlockTypes.add(BlockQuote.class);
-		enabledBlockTypes.add(ListBlock.class);*/
+		HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
+		HashSet<Extension> extensions = new HashSet<>();
+
 		enabledBlockTypes.add(Heading.class);
+		
+		extensions.add(StrikethroughExtension.create());
+		extensions.add(AutolinkExtension.create());
+		
+		parser = Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build();
+		renderer = HtmlRenderer.builder().extensions(extensions).build();
 	}
 	
 	

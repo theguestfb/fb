@@ -9,9 +9,14 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 
+import fb.Story.EpisodeException;
 import fb.Strings;
 
 public class DB {
+	
+	public static final String ROOT_ID = "fbadministrator1";
+	public static final String LEGACY_ID = "fictionbranches1";
+	
 	private static SessionFactory sessionFactory = null;
 	private static Session session;
 	private static Object dbLock = new Object();
@@ -47,40 +52,45 @@ public class DB {
 	 * @param title title of new episode
 	 * @param body body of new episode
 	 * @param author author of new episode
-	 * @return HTML success page
+	 * @return child DBEpisode object
 	 */
-	public static DBEpisode addEp(String id, String link, String title, String body, DBUser author, Date date) {
+	public static DBEpisode addEp(String id, String link, String title, String body, DBUser author, Date date) throws EpisodeException {
 		synchronized (dbLock) {
 			Session session = DB.getSession();
-			session.beginTransaction();
+			
 			DBEpisode parent = session.get(DBEpisode.class, id);
 			DBRecents recents = session.get(DBRecents.class, 1);
 			author = session.get(DBUser.class, author.getId());
+
+			if (parent == null) throw new EpisodeException("Parent episode does not exist");
+			
+			String childId = id + "-" + (1 + parent.getChildren().size());
+			if (childId.length() > 4096) throw new EpisodeException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
+			
+			session.beginTransaction();
+			
 			DBEpisode child;
-			if (parent == null)
-				child = null;
-			else {
-				child = new DBEpisode();
-				child.setTitle(title);
-				child.setLink(link);
-				child.setBody(body);
-				child.setAuthor(author);
-				child.setParent(parent);
-				child.setDate(date);
-				child.setId(id + "-" + (1 + parent.getChildren().size()));
-				parent.getChildren().add(child);
+			child = new DBEpisode();
+			child.setTitle(title);
+			child.setLink(link);
+			child.setBody(body);
+			child.setAuthor(author);
+			child.setParent(parent);
+			child.setDate(date);
+			child.setId(childId);
+			parent.getChildren().add(child);
 
-				// DBRecentId
-				//if (recents.getRecents() == null) recents.setRecents(new ArrayList<DBEpisode>());
-				while (recents.getRecents().size() >= 25)
-					recents.getRecents().remove(recents.getRecents().size() - 1);
-				recents.getRecents().add(0, child);
+			// DBRecentId
+			//if (recents.getRecents() == null) recents.setRecents(new ArrayList<DBEpisode>());
+			while (recents.getRecents().size() >= 25)
+				recents.getRecents().remove(recents.getRecents().size() - 1);
+			recents.getRecents().add(0, child);
 
-				session.save(child);
-				session.merge(parent);
-				session.merge(recents);
-				Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
-			}
+			session.save(child);
+			session.merge(parent);
+			session.merge(recents);
+			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
+			
 			session.getTransaction().commit();
 			return child;
 		}
@@ -268,7 +278,7 @@ public class DB {
 	 * @return
 	 */
 	public static String getAuthor(DBEpisode ep) {
-		if (!ep.getAuthor().getId().equals("fictionbranches1")) synchronized (dbLock) {
+		if (ep.getAuthor().getId().equals(DB.LEGACY_ID)) synchronized (dbLock) {
 			return getSession().get(DBLegacyAuthor.class, ep.getId()).getAuthor();
 		} else return ep.getAuthor().getAuthor();
 	}

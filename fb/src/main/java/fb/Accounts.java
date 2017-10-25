@@ -139,7 +139,7 @@ public class Accounts {
 	 * @return HTML user page for id
 	 */
 	public static String getUserPage(String id, Cookie fbtoken) {
-		if (id.equals("fictionbranches1")) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " is not available"); 
+		if (id.equals(DB.LEGACY_ID)) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " is not available"); 
 		DBUser user = DB.getUser(id);
 		if (user == null) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " does not exist");
 		StringBuilder sb = new StringBuilder();
@@ -280,6 +280,7 @@ public class Accounts {
 		if (sesh == null) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
 		DBUser user = DB.getUser(sesh.userID);
 		if (user == null) return "Invalid user";
+		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
 		if (author.length() == 0) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be empty");
 		if (author.length() > 200) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be longer than 200 character");
 		DB.changeAuthor(user.getId(), author);
@@ -300,6 +301,7 @@ public class Accounts {
 		if (sesh == null) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
 		DBUser user = DB.getUser(sesh.userID);
 		if (user == null) return "Invalid user";
+		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
 		if (newpass.length() < 8) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Password cannot be shorter than 8 characters");
 		if (!newpass.equals(newpass2)) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Passwords do not match");
 		if (!BCrypt.checkpw(password, user.getPassword())) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Incorrect current password");
@@ -313,6 +315,7 @@ public class Accounts {
 		if (sesh == null) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
 		DBUser user = DB.getUser(sesh.userID);
 		if (user == null) return "Invalid user";
+		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
 		if (!BCrypt.checkpw(password, user.getPassword())) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "Incorrect current password");
 		
 		if (!EmailValidator.getInstance().isValid(email)) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "Invalid email address " + email);
@@ -355,6 +358,7 @@ public class Accounts {
 	public static String changeLevel(String userID, byte newLevel, Cookie fbtoken) {
 		DBUser admin = Accounts.getUser(fbtoken);
 		if (admin == null) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that");
+		if (admin.getId().equals(DB.LEGACY_ID) || admin.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
 		if (admin.getLevel()<100) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that");
 		if (!DB.changeUserLevel(userID, newLevel)) return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA","Invalid user ID " + userID);
 		return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", userID + " is now " + ((newLevel==((byte)100))?("an admin"):((newLevel==((byte)10))?("a mod"):("a normal user"))));

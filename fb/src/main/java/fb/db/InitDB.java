@@ -27,34 +27,32 @@ public class InitDB {
 
 		Session session = DB.getSession();
 		
-		System.out.print(DB.getEp("3-1-1-3-7").getBody());
-		
-		/*
+		/***** Count episodes in DB ******
 		long stop, start=System.nanoTime();
 		
-		int c = count(DB.getEp("4"));
+		int c = count("4");
 		stop = System.nanoTime();
 		System.out.println("finished tfog: " + c + " " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		c = count(DB.getEp("3"));
+		c = count("3");
 		stop = System.nanoTime();
 		System.out.println("finished af: " + c + " " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		c = count(DB.getEp("1"));
+		c = count("1");
 		stop = System.nanoTime();
 		System.out.println("finished forum: " + c + " " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		c = count(DB.getEp("2"));
+		c = count("2");
 		stop = System.nanoTime();
 		System.out.println("finished yawyw: " + c + " " + (((double)(stop-start))/1000000000.0));
-		start = System.nanoTime();
+		start = System.nanoTime();*/
 		
 		session.beginTransaction();
 		DBUser legacyUser = new DBUser();
-		legacyUser.setId("fictionbranches1");
+		legacyUser.setId(DB.LEGACY_ID);
 		legacyUser.setLevel((byte)1);
 		legacyUser.setPassword("");
 		legacyUser.setAuthor("LegacyAuthor");
@@ -67,7 +65,22 @@ public class InitDB {
 			System.out.println("enter root password:");
 			String rootpw = in.nextLine();
 			
-			String rootId = DB.addUser("admin@fictionbranches.net", BCrypt.hashpw(rootpw,BCrypt.gensalt(10)), "Fiction Branches");
+			session.beginTransaction();
+
+			String rootId = DB.ROOT_ID;
+			DBUser user = new DBUser();
+			DBEmail dbemail = new DBEmail();
+			dbemail.setEmail("admin@fictionbranches.net");
+			user.setId(rootId);
+			user.setLevel((byte)1);
+			user.setAuthor("FB Admin");
+			user.setEmail(dbemail);
+			user.setPassword(BCrypt.hashpw(rootpw, BCrypt.gensalt(10)));
+			dbemail.setUser(user);
+			session.save(user);
+			session.save(dbemail);
+			session.getTransaction().commit();
+			
 			DB.setAdmin(rootId);
 		}
 		
@@ -105,17 +118,26 @@ public class InitDB {
 		session.beginTransaction();
 		session.save(recents);
 		session.getTransaction().commit();
-		Strings.log("Added recents");*/
+		Strings.log("Added recents");
 		
 		session.close();
 		DB.getSessionFactory().close();
 		Strings.log("Fin");
+		System.exit(0);
 	}
 	
-	private static int count(DBEpisode root) {
-		if (root == null) System.err.println("null");
+	/**
+	 * Count episodes in tree
+	 * @param id of root of tree
+	 * @return number of episodes (including root) in tree
+	 */
+	static int count(String id) {
+		DB.getSession().beginTransaction();
+		DBEpisode ep = DB.getSession().get(DBEpisode.class, id);
+		if (ep == null) System.err.println("null");
+		
 		int sum = 1; // count this episode
-		if (root.getChildren() != null) for (DBEpisode child : root.getChildren()) sum+=count(child);
+		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
 		return sum;
 	}
 	
@@ -125,7 +147,7 @@ public class InitDB {
 		
 		session.beginTransaction();
 		
-		DBUser rootLegacyUser = session.get(DBUser.class, "fictionbranches1");
+		DBUser rootLegacyUser = session.get(DBUser.class, DB.LEGACY_ID);
 		
 		Strings.log("Loading root of " + story);
 		LegacyEpisodeContainer rootCont = readEpisode(new File(dirPath+"/root"));
@@ -232,7 +254,7 @@ public class InitDB {
 				String childId = newId;
 				String parentId = getParentId(childId);
 				DBEpisode child = new DBEpisode();
-				DBUser legacyUser = session.get(DBUser.class, "fictionbranches1");
+				DBUser legacyUser = session.get(DBUser.class, DB.LEGACY_ID);
 				
 				child.setTitle("(Empty)");
 				child.setLink("(Empty)");
@@ -262,7 +284,7 @@ public class InitDB {
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
 				DBEpisode parent = session.get(DBEpisode.class, parentId);
-				DBUser legacyUser = session.get(DBUser.class, "fictionbranches1");
+				DBUser legacyUser = session.get(DBUser.class, DB.LEGACY_ID);
 				child.setId(childId);
 				child.setParent(parent);
 				child.setAuthor(legacyUser);
@@ -347,8 +369,8 @@ public class InitDB {
 			String line = in.nextLine();
 			while (in.hasNext() && line.trim().length() == 0) line = in.nextLine();
 			StringBuilder body = new StringBuilder();
-			body.append(line + "\n");
-			while (in.hasNext()) body.append(in.nextLine() + "\n");
+			body.append(line + "  \n");
+			while (in.hasNext()) body.append(in.nextLine() + "  \n");
 			ep.setBody(body.toString());
 			in.close();
 			return new LegacyEpisodeContainer(ep, author);

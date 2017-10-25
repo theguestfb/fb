@@ -148,4 +148,11 @@ public class GetStuff {
 	public Response recent(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getRecents(fbtoken)).build();
 	}
+	
+	@GET
+	@Path("formatting")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response formatting(@CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Strings.getFile("formatting.html", fbtoken)).build();
+	}
 }
