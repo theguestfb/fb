@@ -11,6 +11,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import fb.db.DB;
+import fb.db.DB.DBException;
 @Path("")
 public class LegacyStuff {
 	/**
@@ -24,8 +25,12 @@ public class LegacyStuff {
 	@Path("legacy/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy(@PathParam("oldId") String oldId) {
-		String newId = DB.getLegacyId(oldId);
-		if (newId == null) return Response.ok("Not found: " + oldId).build();
+		String newId;
+		try {
+			newId = DB.getLegacyId(oldId);
+		} catch (DBException e) {
+			return Response.ok("Not found: " + oldId).build();
+		}
 		return Response.temporaryRedirect(URI.create("/fb/get/" + newId)).build();
 	}
 	

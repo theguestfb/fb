@@ -20,10 +20,13 @@ import org.commonmark.renderer.html.HtmlRenderer;
 
 import com.google.common.html.HtmlEscapers;
 
+import fb.Accounts.FBLoginException;
 import fb.db.DB;
-import fb.db.DBEpisode;
-import fb.db.DBRecents;
-import fb.db.DBUser;
+import fb.db.DB.DBException;
+import fb.objects.Episode;
+import fb.objects.Episode.ChildEpisode;
+import fb.objects.Recents;
+import fb.objects.User;
 
 /**
  * Contains the actual logic that controls how the site works
@@ -47,11 +50,14 @@ public class Story {
 	 * @return HTML episode
 	 */
 	public static String getHTML(String id, int sort, Cookie token) {
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return notFound(id);
-		else {
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e) {
+			return notFound(id);
+		}
 			StringBuilder sb = new StringBuilder();
-			ArrayList<DBEpisode> children = new ArrayList<>(ep.getChildren());
+			ArrayList<ChildEpisode> children = ep.children;
 			switch (sort) {
 			case 0:
 			default:
@@ -70,34 +76,34 @@ public class Story {
 				Collections.shuffle(children);
 				break;
 			}
-			if (children != null) for (DBEpisode child : children) if (child != null && !child.getId().equals(ep.getId())){
-				sb.append("<p><a href=" + child.getId() + ">" + HtmlEscapers.htmlEscaper().escape(child.getLink()) + "</a>" + " (" + child.getChildren().size() + ")" + "</p>\n");
+			for (ChildEpisode child : children) {
+				sb.append("<p><a href=" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
 			}
 			
-			String modify = "", addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
+			String addEp, modify="";			
 			
-			DBUser currentUser = Accounts.getUser(token);
-			if (currentUser != null) {
-				if (ep.getAuthor().getId().equals(currentUser.getId())) modify = "<br/><br/><a href=../modify/" + id + ">Modify your episode</a>";
-				else if (currentUser.getLevel() >= ((byte)10)) modify = "<br/><br/><a href=../modify/" + id + ">Modify as moderator</a>";
+			try {
+				User currentUser = Accounts.getUser(token);
+				if (ep.authorId.equals(currentUser.id)) modify = "<br/><br/><a href=../modify/" + id + ">Modify your episode</a>";
+				else if (currentUser.level >= ((byte)10)) modify = "<br/><br/><a href=../modify/" + id + ">Modify as moderator</a>";
 				addEp = "<a href=../add/" + id + ">Add a new episode</a>";
+			} catch (FBLoginException e) {
+				addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
 			}
-						
-			String author,authorName = HtmlEscapers.htmlEscaper().escape(DB.getAuthor(ep));
-			if (ep.getAuthor().getId().equals(DB.LEGACY_ID)) author = authorName;
-			else author = "<a href=/fb/user/" + ep.getAuthor().getId() + ">" + authorName + "</a>";
+			
+			String author = HtmlEscapers.htmlEscaper().escape(ep.authorName);
+			if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
 			
 			return Strings.getFile("story.html", token)
-					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
-					.replace("$BODY", formatBody(ep.getBody()))
+					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
+					.replace("$BODY", formatBody(ep.body))
 					.replace("$AUTHOR", author)
-					.replace("$PARENTID", (((ep.getParent() == null) || (ep.getParent().getId().equals(ep.getId()))) ? ("..") : (HtmlEscapers.htmlEscaper().escape(ep.getParent().getId()))))
+					.replace("$PARENTID", (ep.parentId == null) ? ".." : HtmlEscapers.htmlEscaper().escape(ep.parentId))
 					.replace("$ID", id)
-					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.getDate())))
+					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.date)))
 					.replace("$MODIFY", modify)
 					.replace("$ADDEP", addEp)
 					.replace("$CHILDREN", sb.toString());
-		}
 	}
 	
 	public static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
@@ -108,30 +114,34 @@ public class Story {
 	 * @return HTML recents
 	 */
 	public static String getRecents(Cookie token) {
-		DBRecents recents = DB.getRecents();
-		{
-			StringBuilder sb = new StringBuilder();
-
-			for (DBEpisode child : recents.getRecents()) if (child != null){
-				String story = "";
-				switch (child.getId().split("-")[0]) {
-				case "1":
-					story = "(Forum)";
-					break;
-				case "2":
-					story = "(You Are What You Wish)";
-					break;
-				case "3":
-					story = "(Altered Fates)";
-					break;
-				case "4":
-					story = "(The Future of Gaming)";
-					break;
-				}
-				sb.append("<p><a href=get/" + child.getId() + ">" + child.getLink() + "</a>" + " by " + DB.getAuthor(child) + " on " + outputDate.format(child.getDate()) + " " + story + "</p>");
-			}
-			return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
+		Recents recents;
+		try {
+			recents = DB.getRecents();
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
 		}
+				
+		StringBuilder sb = new StringBuilder();
+		for (Episode child : recents.recents) if (child != null){
+			String story = "";
+			switch (child.id.split("-")[0]) {
+			case "1":
+				story = "(Forum)";
+				break;
+			case "2":
+				story = "(You Are What You Wish)";
+				break;
+			case "3":
+				story = "(Altered Fates)";
+				break;
+			case "4":
+				story = "(The Future of Gaming)";
+				break;
+			}
+			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + outputDate.format(child.date) + " " + story + "</p>");
+		}
+		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
+		
 	}
 	
 	
@@ -144,10 +154,14 @@ public class Story {
 	 */
 	public static String addForm(String id, Cookie token) {
 		if (!Accounts.isLoggedIn(token)) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes");
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return notFound(id);
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e) {
+			return notFound(id);
+		}
 		return Strings.getFile("addform.html", token)
-				.replace("$TITLE", ep.getTitle())
+				.replace("$TITLE", ep.title)
 				.replace("$ID", id);
 	}
 	
@@ -161,8 +175,12 @@ public class Story {
 	 * @throws EpisodeException if there's any error, e.getMessage() will contain HTML page for error
 	 */
 	public static String addPost(String id, String link, String title, String body, Cookie token) throws EpisodeException {
-		DBUser user = Accounts.getUser(token);
-		if (user == null) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes"));
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes"));
+		}
 		link = link.trim();
 		title = title.trim();
 		body = body.trim();
@@ -170,8 +188,8 @@ public class Story {
 		String errors = checkEpisode(link, title, body);
 		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 		try {
-			return DB.addEp(id, link, title, body, user, new Date()).getId();
-		} catch (EpisodeException e) {
+			return DB.addEp(id, link, title, body, user.id, new Date()).id;
+		} catch (DBException e) {
 			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
 		}
 	}
@@ -192,16 +210,23 @@ public class Story {
 	 * @return HTML form
 	 */
 	public static String modifyForm(String id, Cookie token) {
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return notFound(id);
-		DBUser user = Accounts.getUser(token);
-		if (user == null) return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
-		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e) {
+			return notFound(id);
+		}
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
+		}
+		if (!user.id.equals(ep.authorId) && user.level<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
 		return Strings.getFile("modifyform.html", token)
-				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.getTitle()))
-				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.getBody()))
-				.replace("$AUTHOR", HtmlEscapers.htmlEscaper().escape(ep.getAuthor().getAuthor()))
-				.replace("$LINK", HtmlEscapers.htmlEscaper().escape(ep.getLink()))
+				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
+				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.body))
+				.replace("$LINK", HtmlEscapers.htmlEscaper().escape(ep.link))
 				.replace("$ID", id);
 	}
 	
@@ -215,11 +240,19 @@ public class Story {
 	 * @throws EpisodeException if error occurs, e.getMessage() will contain HTML page with error
 	 */
 	public static String modifyPost(String id, String link, String title, String body, Cookie token) throws EpisodeException {
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) throw new EpisodeException(notFound(id));
-		DBUser user = Accounts.getUser(token);
-		if (user == null) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that"));
-		if (!user.getId().equals(ep.getAuthor().getId()) && user.getLevel()<10) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote"));
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e1) {
+			throw new EpisodeException(notFound(id));
+		}
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that"));
+		}
+		if (!user.id.equals(ep.authorId) && user.level<10) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote"));
 		
 		link = link.trim();
 		title = title.trim();
@@ -228,7 +261,9 @@ public class Story {
 		String errors = checkEpisode(link, title, body);
 		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 				
-		if (!DB.modifyEp(id, link, title, body)) {
+		try {
+			DB.modifyEp(id, link, title, body);
+		} catch (DBException e) {
 			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id));
 		}
 				

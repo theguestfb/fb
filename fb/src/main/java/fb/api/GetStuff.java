@@ -14,7 +14,8 @@ import javax.ws.rs.core.Response;
 import fb.Story;
 import fb.Strings;
 import fb.db.DB;
-import fb.db.DBEpisode;
+import fb.db.DB.DBException;
+import fb.objects.Episode;
 
 @Path("")
 public class GetStuff {
@@ -123,15 +124,19 @@ public class GetStuff {
 	@Path("getraw/{id}")
 	@Produces(MediaType.TEXT_PLAIN + "; charset=UTF-8")
 	public String getraw(@PathParam("id") String id) {
-		DBEpisode ep = DB.getEp(id);
-		if (ep == null) return "Not found: " + id;
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e) {
+			return "Not found: " + id;
+		}
 		StringBuilder sb = new StringBuilder();
-		sb.append(ep.getId() + "\n");
-		sb.append(ep.getLink() + "\n");
-		sb.append(ep.getTitle() + "\n");
-		sb.append(DB.getAuthor(ep) + "\n");
-		sb.append(Story.outputDate.format(ep.getDate()) + "\n");
-		sb.append(ep.getBody() + "\n");
+		sb.append(ep.id + "\n");
+		sb.append(ep.link + "\n");
+		sb.append(ep.title + "\n");
+		sb.append(ep.authorName + "\n");
+		sb.append(Story.outputDate.format(ep.date) + "\n");
+		sb.append(ep.body + "\n");
 		return sb.toString();
 	}
 

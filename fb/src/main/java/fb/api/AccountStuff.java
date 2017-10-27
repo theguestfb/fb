@@ -18,7 +18,7 @@ import javax.ws.rs.core.Response;
 import fb.Accounts;
 import fb.Accounts.FBLoginException;
 import fb.Strings;
-import fb.db.DBUser;
+import fb.objects.User;
 
 @Path("")
 public class AccountStuff {
@@ -143,17 +143,22 @@ public class AccountStuff {
 	@Path("useraccount")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response useraccount(@CookieParam("fbtoken") Cookie fbtoken) {
-		DBUser user = Accounts.getUser(fbtoken);
-		if (user == null) return Response.ok("You must be logged in to do that").build();
-		return Response.ok(Strings.getFile("useraccount.html", fbtoken).replace("$ID", user.getId())).build();
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
+		User user;
+		try {
+			user = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok("You must be logged in to do that").build();
+		}
+		
+		return Response.ok(Strings.getFile("useraccount.html", fbtoken).replace("$ID", user.id)).build();
 	}
 	
 	@GET
 	@Path("changeauthor")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response changeauthor(@CookieParam("fbtoken") Cookie fbtoken) {
-		DBUser user = Accounts.getUser(fbtoken);
-		if (user == null) return Response.ok("You must be logged in to do that").build();
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		return Response.ok(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "")).build();
 	}
 	
@@ -169,17 +174,19 @@ public class AccountStuff {
 			default: return Response.ok(response).build();
 			}
 		}
-		String response = Accounts.changeAuthor(fbtoken, author);
-		if (response != null) return Response.ok(response).build(); //failed, try again
+		try {
+			Accounts.changeAuthor(fbtoken, author);
+		} catch (FBLoginException e) {
+			return Response.ok(e.getMessage()).build();  //failed, try again
+		}
 		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
 	@Path("changepassword")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {
-		DBUser user = Accounts.getUser(fbtoken);
-		if (user == null) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
+	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {	
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
 		return Response.ok(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "")).build();
 	}
 	
@@ -195,8 +202,11 @@ public class AccountStuff {
 			default: return Response.ok(response).build();
 			}
 		}
-		String response = Accounts.changePassword(fbtoken, newpass, newpass2, password);
-		if (response != null) return Response.ok(response).build(); //failed, try again
+		try {
+			Accounts.changePassword(fbtoken, newpass, newpass2, password);
+		} catch (FBLoginException e) {
+			return Response.ok(e.getMessage()).build(); //failed, try again
+		}
 		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
 	}
 	
@@ -204,8 +214,7 @@ public class AccountStuff {
 	@Path("changeemail")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response changeemail(@CookieParam("fbtoken") Cookie fbtoken) {
-		DBUser user = Accounts.getUser(fbtoken);
-		if (user == null) return Response.ok("You must be logged in to do that").build();
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		return Response.ok(Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "")).build();
 	}
 	

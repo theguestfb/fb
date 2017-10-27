@@ -15,13 +15,15 @@ import javax.mail.internet.MimeMessage;
 import javax.ws.rs.core.Cookie;
 
 import org.apache.commons.validator.routines.EmailValidator;
+//import org.mindrot.jbcrypt.BCrypt;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.common.html.HtmlEscapers;
 
 import fb.db.DB;
-import fb.db.DBEpisode;
-import fb.db.DBUser;
+import fb.db.DB.DBException;
+import fb.objects.Episode;
+import fb.objects.User;
 
 public class Accounts {
 	private static ConcurrentHashMap<String,UserSession> active = new ConcurrentHashMap<>(); //<loginToken>, user>
@@ -125,10 +127,15 @@ public class Accounts {
 		UserSession sesh = active.get(token);
 		if (sesh == null) return notLoggedIn;
 		
-		DBUser user = DB.getUser(sesh.userID);
+		User user;
+		try {
+			user = DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			return notLoggedIn;
+		}
 		
-		String response = "Logged in as <a href=/fb/useraccount>" + HtmlEscapers.htmlEscaper().escape(user.getAuthor()) + "</a><br/><a href=/fb/logout>Log out</a>";
-		if (user.getLevel()>=(byte)100) response +="<br/><a href=/fb/admin>Admin stuff</a>";
+		String response = "Logged in as <a href=/fb/useraccount>" + HtmlEscapers.htmlEscaper().escape(user.author) + "</a><br/><a href=/fb/logout>Log out</a>";
+		if (user.level>=(byte)100) response +="<br/><a href=/fb/admin>Admin stuff</a>";
 		
 		return response;
 	}
@@ -139,13 +146,16 @@ public class Accounts {
 	 * @return HTML user page for id
 	 */
 	public static String getUserPage(String id, Cookie fbtoken) {
-		if (id.equals(DB.LEGACY_ID)) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " is not available"); 
-		DBUser user = DB.getUser(id);
-		if (user == null) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " does not exist");
+		User user;
+		try {
+			user = DB.getUser(id);
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " does not exist");
+		}
 		StringBuilder sb = new StringBuilder();
-		for (DBEpisode ep : user.getEpisodes()) {
+		for (Episode ep : user.episodes) {
 			String story = "";
-			switch (ep.getId().split("-")[0]) {
+			switch (ep.id.split("-")[0]) {
 			case "1":
 				story = "(Forum)";
 				break;
@@ -159,22 +169,28 @@ public class Accounts {
 				story = "(The Future of Gaming)";
 				break;
 			}
-			sb.append("<a href=/fb/get/" + ep.getId() + ">" + HtmlEscapers.htmlEscaper().escape(ep.getTitle()) + "</a> " + Story.outputDate.format(ep.getDate()) + " " + story + "<br/>");
+			sb.append("<a href=/fb/get/" + ep.id + ">" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</a> " + Story.outputDate.format(ep.date) + " " + story + "<br/>");
 		}
 		
-		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.getAuthor()).replace("$EPISODES", sb.toString());
+		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$EPISODES", sb.toString());
 	}
 	
 	/**
 	 * Get DBUser object from session token, or null if sesh does not exist
 	 * @param token
 	 * @return
+	 * @throws DBException if id does not exist
+	 * @throws FBLoginException if not logged in
 	 */
-	public static DBUser getUser(Cookie token) {
-		if (token == null) return null;
+	public static User getUser(Cookie token) throws FBLoginException {
+		if (token == null) throw new FBLoginException(""); // return null;
 		UserSession sesh = active.get(token.getValue());
-		if (sesh == null) return null;
-		return DB.getUser(sesh.userID);
+		if (sesh == null) throw new FBLoginException(""); // return null;
+		try {
+			return DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			throw new FBLoginException("");
+		}
 	}
 	
 	/**
@@ -201,12 +217,16 @@ public class Accounts {
 	 * @throws FBLoginException if email or password is wrong (e.getMessage() contains HTML)
 	 */
 	public static String login(String email, String password) throws FBLoginException {
-		DBUser user = DB.getUserByEmail(email);
-		if (user == null) throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
-		if (!BCrypt.checkpw(password, user.getPassword())) throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
+		User user;
+		try {
+			user = DB.getUserByEmail(email);
+			if (!DB.checkPassword(user.id, password)) throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
+		}
 		
 		String newToken = newToken(active);
-		active.put(newToken, new UserSession(user.getId()));
+		active.put(newToken, new UserSession(user.id));
 		
 		return newToken;
 	}
@@ -235,7 +255,11 @@ public class Accounts {
 		Strings.log(sb.toString());
 		if (createQueue.containsKey(createToken)) {
 			PotentialUser createUser = createQueue.remove(createToken);
-			if (DB.addUser(createUser.email, createUser.passwordHash, createUser.author) == null) return Strings.getFile("generic.html",null).replace("$EXTRA", "Email address associated with that confirmation token is already verified");
+			try {
+				DB.addUser(createUser.email, createUser.passwordHash, createUser.author);
+			} catch (DBException e) { 
+				return Strings.getFile("generic.html",null).replace("$EXTRA", "Email address associated with that confirmation token is already verified");
+			}
 			return Strings.getFile("accountconfirmed.html", null);
 		} else return Strings.getFile("generic.html",null).replace("$EXTRA", "Confirmation link is expired, invalid, or has already been used");
 	}
@@ -251,8 +275,8 @@ public class Accounts {
 	public static String create(String email, String password, String password2, String author) {
 		{
 			if (email == null || email.length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address is required");
-			DBUser user = DB.getUserByEmail(email);
-			if (user != null) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address " + email + " is already in use");
+			
+			if (DB.emailInUse(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address " + email + " is already in use");
 			if (!EmailValidator.getInstance().isValid(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Invalid email address " + email);
 			if (!password.equals(password2)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Passwords do not match");
 			if (password.length() < 8) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Password must be at least 8 characters long");
@@ -269,22 +293,29 @@ public class Accounts {
 	}
 	
 	/**
-	 * 
+	 * Changes the author name of the currently logged in user
 	 * @param fbtoken
-	 * @param author
-	 * @return null on success
+	 * @param author new author name
+	 * @throws FBLoginException if user is not logged in, or is root
 	 */
-	public static String changeAuthor(Cookie fbtoken, String author) {
-		if (fbtoken == null) return null;
+	public static void changeAuthor(Cookie fbtoken, String author) throws FBLoginException {
+		if (fbtoken == null) throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
 		UserSession sesh = active.get(fbtoken.getValue());
-		if (sesh == null) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
-		DBUser user = DB.getUser(sesh.userID);
-		if (user == null) return "Invalid user";
-		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
-		if (author.length() == 0) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be empty");
-		if (author.length() > 200) return Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be longer than 200 character");
-		DB.changeAuthor(user.getId(), author);
-		return null;
+		if (sesh == null) throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		User user;
+		try {
+			user = DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+		if (user.id.equals(DB.ROOT_ID)) throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "This user account may not be modified"));
+		if (author.length() == 0) throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be empty"));
+		if (author.length() > 200) throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Author cannot be longer than 200 character"));
+		try {
+			DB.changeAuthorName(user.id, author);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
 	}
 	
 	/**
@@ -293,37 +324,59 @@ public class Accounts {
 	 * @param newpass
 	 * @param newpass2
 	 * @param password
-	 * @return null on success
+	 * @throws FBLoginException if password does not meet requirements, passwords do not match, or user does not exist
 	 */
-	public static String changePassword(Cookie fbtoken, String newpass, String newpass2, String password) {
-		if (fbtoken == null) return null;
+	public static void changePassword(Cookie fbtoken, String newpass, String newpass2, String password) throws FBLoginException {
+		if (fbtoken == null) throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
 		UserSession sesh = active.get(fbtoken.getValue());
-		if (sesh == null) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
-		DBUser user = DB.getUser(sesh.userID);
-		if (user == null) return "Invalid user";
-		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
-		if (newpass.length() < 8) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Password cannot be shorter than 8 characters");
-		if (!newpass.equals(newpass2)) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Passwords do not match");
-		if (!BCrypt.checkpw(password, user.getPassword())) return Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Incorrect current password");
-		DB.changePassword(user.getId(), BCrypt.hashpw(newpass, BCrypt.gensalt(10)));
-		return null;
+		if (sesh == null) throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		User user;
+		try {
+			user = DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+		if (user.id.equals(DB.ROOT_ID)) throw new FBLoginException("This user account may not be modified");
+		if (newpass.length() < 8) throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Password cannot be shorter than 8 characters"));
+		if (!newpass.equals(newpass2)) throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Passwords do not match"));
+		try {
+			if (!DB.checkPassword(user.id, password)) throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Incorrect current password"));
+		} catch (DBException e1) {
+			throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+		try {
+			DB.changePassword(user.id, BCrypt.hashpw(newpass, BCrypt.gensalt(10)));
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
 	}
 	
+	/**
+	 * Begin process of changing current user's email address
+	 * @param fbtoken
+	 * @param email
+	 * @param password
+	 * @return HTML page with instructions on how to fix input or continue process
+	 */
 	public static String changeEmail(Cookie fbtoken, String email, String password) {
-		if (fbtoken == null) return null;
+		if (fbtoken == null) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
 		UserSession sesh = active.get(fbtoken.getValue());
 		if (sesh == null) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
-		DBUser user = DB.getUser(sesh.userID);
-		if (user == null) return "Invalid user";
-		if (user.getId().equals(DB.LEGACY_ID) || user.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
-		if (!BCrypt.checkpw(password, user.getPassword())) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "Incorrect current password");
+		
+
+		if (sesh.userID.equals(DB.ROOT_ID)) return "This user account may not be modified";
+		try {
+			if (!DB.checkPassword(sesh.userID, password)) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "Incorrect current password");
+		} catch (DBException e) {
+			return "Invalid user";
+		}
 		
 		if (!EmailValidator.getInstance().isValid(email)) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "Invalid email address " + email);
 		
-		if (DB.getUserByEmail(email) != null) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", email + " is already in use by another account");
+		if (DB.emailInUse(email)) return Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", email + " is already in use by another account");
 		
 		String changeToken = newToken(emailChangeQueue);
-		EmailChange emailChange = new EmailChange(user.getId(), email);
+		EmailChange emailChange = new EmailChange(sesh.userID, email);
 		emailChangeQueue.put(changeToken, emailChange);
 		if (!sendEmail(email, "Confirm your new Fiction Branches account email", 
 				"Please click the following link (or copy/paste it into your browser) to verify your new email address: https://test.fictionbranches.net/fb/confirmemailchange/" + changeToken + " (This link is only good for 24 hours.)\nAfter taking this action, you will have to use your new email address to log in.")) {
@@ -335,15 +388,16 @@ public class Accounts {
 	/**
 	 * Verify a new account
 	 * @param createToken 
-	 * @return HTML account confirmed, or plaintext error
+	 * @return HTML email change confirmed, or error page
 	 */
 	public static String verifyNewEmail(String changeToken, Cookie fbtoken) {
-		StringBuilder sb = new StringBuilder("Verifying token " + changeToken + " against ");
-		for (String key : emailChangeQueue.keySet()) sb.append(key + " ");
-		Strings.log(sb.toString());
 		if (emailChangeQueue.containsKey(changeToken)) {
 			EmailChange changeEmail = emailChangeQueue.remove(changeToken);
-			if (!DB.changeEmail(changeEmail.userID, changeEmail.newEmail)) return "Unable to change email address";
+			try {
+				DB.changeEmail(changeEmail.userID, changeEmail.newEmail);
+			} catch (DBException e) {
+				return "Unable to change email address";
+			}
 			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Email address successfully changed");
 		} else return Strings.getFile("generic.html",fbtoken).replace("$EXTRA", "Confirmation link is expired, invalid, or has already been used");
 	}
@@ -355,21 +409,46 @@ public class Accounts {
 	 * @param fbtoken
 	 * @return HTML response
 	 */
-	public static String changeLevel(String userID, byte newLevel, Cookie fbtoken) {
-		DBUser admin = Accounts.getUser(fbtoken);
+	/*public static String changeLevel(String userID, byte newLevel, Cookie fbtoken) {
+		User admin = Accounts.getUser(fbtoken);
 		if (admin == null) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that");
-		if (admin.getId().equals(DB.LEGACY_ID) || admin.getId().equals(DB.ROOT_ID)) return "This user account may not be modified";
-		if (admin.getLevel()<100) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that");
+		if (admin.id.equals(DB.ROOT_ID)) return "This user account may not be modified";
+		if (admin.level<100) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that");
 		if (!DB.changeUserLevel(userID, newLevel)) return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA","Invalid user ID " + userID);
 		return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", userID + " is now " + ((newLevel==((byte)100))?("an admin"):((newLevel==((byte)10))?("a mod"):("a normal user"))));
+	}*/
+	
+	/**
+	 * @param userID
+	 * @param level
+	 * @param fbtoken
+	 * @return HTML page containing result
+	 */
+	public static String changeLevel(String userID, byte level, Cookie fbtoken) {
+		User admin;
+		try {
+			admin = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e ) {
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
+		}
+		if (userID.equals(DB.ROOT_ID)) return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "This user account may not be modified");
+		if (admin.level<100) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that");
+		try {
+			DB.changeUserLevel(userID, level);
+		} catch (DBException e) {
+			return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "User id does not exist");
+		}
+		return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "User " + userID + " level successfully changed");
 	}
+	
+	
 	
 	/**
 	 * Generate a new 32-char token, ensuring that the map does not contain it as a key
 	 * @param map map to check for collision
 	 * @return token
 	 */
-	private static String newToken(ConcurrentHashMap<String,?> map) {
+ 	private static String newToken(ConcurrentHashMap<String,?> map) {
 		StringBuilder token = new StringBuilder();
 		for (int i=0; i<32; ++i) token.append((char)('a'+DB.r.nextInt(26)));
 		while (map.containsKey(token.toString())) {

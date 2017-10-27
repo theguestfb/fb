@@ -5,9 +5,12 @@ import java.io.FileNotFoundException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.TreeMap;
 
@@ -23,6 +26,8 @@ import fb.Strings;
  */
 public class InitDB {
 
+	private static Random r = new Random();
+	
 	public static void main(String[] args) throws Exception {
 
 		Session session = DB.getSession();
@@ -50,16 +55,6 @@ public class InitDB {
 		System.out.println("finished yawyw: " + c + " " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();*/
 		
-		session.beginTransaction();
-		DBUser legacyUser = new DBUser();
-		legacyUser.setId(DB.LEGACY_ID);
-		legacyUser.setLevel((byte)1);
-		legacyUser.setPassword("");
-		legacyUser.setAuthor("LegacyAuthor");
-		legacyUser.setEmail(null);
-		session.save(legacyUser);
-		session.getTransaction().commit();
-		
 		try (Scanner in = new Scanner(System.in)) {
 			
 			System.out.println("enter root password:");
@@ -67,21 +62,22 @@ public class InitDB {
 			
 			session.beginTransaction();
 
-			String rootId = DB.ROOT_ID;
 			DBUser user = new DBUser();
 			DBEmail dbemail = new DBEmail();
 			dbemail.setEmail("admin@fictionbranches.net");
-			user.setId(rootId);
-			user.setLevel((byte)1);
+			user.setId(DB.ROOT_ID);
+			user.setLevel((byte)100);
 			user.setAuthor("FB Admin");
-			user.setEmail(dbemail);
 			user.setPassword(BCrypt.hashpw(rootpw, BCrypt.gensalt(10)));
+			user.setEmail(dbemail);
 			dbemail.setUser(user);
 			session.save(user);
 			session.save(dbemail);
 			session.getTransaction().commit();
-			
-			DB.setAdmin(rootId);
+									
+			System.out.println("enter phoenix password:");
+			String phoenixID = DB.addUser("root@carolinaphoenix.net", BCrypt.hashpw(in.nextLine(), BCrypt.gensalt(10)), "Phoenix");
+			DB.changeUserLevel(phoenixID, (byte)100);
 		}
 		
 				
@@ -93,7 +89,7 @@ public class InitDB {
 		Strings.log("finished tfog: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		readStory(session, "af", "3");
+		/*readStory(session, "af", "3");
 		stop = System.nanoTime();
 		Strings.log("finished af: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
@@ -105,16 +101,17 @@ public class InitDB {
 		
 		readStory(session, "yawyw", "2");
 		stop = System.nanoTime();
-		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
+		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));*/
 		
 		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
 		Strings.log("Initializing recents");
 		DBRecents recents = new DBRecents();
 		recents.setId(1);
-		recents.getRecents().add(DB.getEp("1"));
-		recents.getRecents().add(DB.getEp("2"));
-		recents.getRecents().add(DB.getEp("3"));
-		recents.getRecents().add(DB.getEp("4"));
+		
+		//recents.getRecents().add(session.get(DBEpisode.class, "1"));
+		//recents.getRecents().add(session.get(DBEpisode.class, "2"));
+		//recents.getRecents().add(session.get(DBEpisode.class, "3"));
+		recents.getRecents().add(session.get(DBEpisode.class, "4"));
 		session.beginTransaction();
 		session.save(recents);
 		session.getTransaction().commit();
@@ -147,20 +144,26 @@ public class InitDB {
 		
 		session.beginTransaction();
 		
-		DBUser rootLegacyUser = session.get(DBUser.class, DB.LEGACY_ID);
-		
+		DBUser newUser = new DBUser();
+		newUser.setEmail(null);
+		newUser.setLevel((byte)1);
+		{
+			String id = genLegacyID();
+			while (session.get(DBUser.class, id) != null) id = genLegacyID();
+			newUser.setId(id);
+		}
 		Strings.log("Loading root of " + story);
 		LegacyEpisodeContainer rootCont = readEpisode(new File(dirPath+"/root"));
 		DBEpisode rootEp = rootCont.ep;
 		rootEp.setParent(null);
 		rootEp.setId(rootId);
-		rootLegacyUser.getEpisodes().add(rootEp);
-		rootEp.setAuthor(rootLegacyUser);
-		DBLegacyAuthor rootLegacyAuthor = new DBLegacyAuthor();
-		rootLegacyAuthor.setId(rootId);
-		rootLegacyAuthor.setAuthor(rootCont.author);
+		newUser.getEpisodes().add(rootEp);
+		rootEp.setAuthor(newUser);
+		newUser.setAuthor(rootCont.author);
+		newUser.setPassword("disabled");
+				
 		session.save(rootEp);
-		session.save(rootLegacyAuthor);
+		session.save(newUser);
 		session.getTransaction().commit();
 		
 		Strings.log("Loading index of " + story);
@@ -247,6 +250,7 @@ public class InitDB {
 			}
 		}
 		
+		
 		Strings.log("Persisting episodes for " + story); 
 		for (String newId : map.keySet()) {
 			if (missingEpisodes.contains(newId)) { // episode needs to exist but doesn't, so make it from scratch
@@ -254,27 +258,32 @@ public class InitDB {
 				String childId = newId;
 				String parentId = getParentId(childId);
 				DBEpisode child = new DBEpisode();
-				DBUser legacyUser = session.get(DBUser.class, DB.LEGACY_ID);
+				DBUser user = new DBUser();
 				
+				{
+					String id = genLegacyID();
+					while (session.get(DBUser.class, id) != null) id = genLegacyID();
+					user.setId(id);
+				}
 				child.setTitle("(Empty)");
 				child.setLink("(Empty)");
-				child.setAuthor(legacyUser);
+				child.setAuthor(user);
 				child.setBody("(Empty)");
-				child.setDate(new Date());
-				legacyUser.getEpisodes().add(child);
-				DBLegacyAuthor legacyAuthor = new DBLegacyAuthor();
-				legacyAuthor.setId(childId);
-				legacyAuthor.setAuthor("(Empty)");
+				child.setDate(oldDate);
+				user.getEpisodes().add(child);
+				user.setAuthor("(Empty)");
+				user.setEmail(null);
+				user.setLevel((byte)1);
+				user.setPassword("disabled");
 				Strings.log("ID must exist, but doesn't: " + childId);
 				DBEpisode parent = session.get(DBEpisode.class, parentId);
 				child.setId(childId);
 				child.setParent(parent);
 				
 				parent.getChildren().add(child);
-				session.save(legacyAuthor);
+				session.save(user);
 				session.save(child);
 				session.merge(parent);
-				session.merge(legacyUser);
 				session.getTransaction().commit();
 			} else { // otherwise, load the episode from file
 				File f = new File(dirPath + map.get(newId));
@@ -284,23 +293,40 @@ public class InitDB {
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
 				DBEpisode parent = session.get(DBEpisode.class, parentId);
-				DBUser legacyUser = session.get(DBUser.class, DB.LEGACY_ID);
+				
+				DBUser user = new DBUser();
+				{
+					String id = genLegacyID();
+					while (session.get(DBUser.class, id) != null) id = genLegacyID();
+					user.setId(id);
+				}
+				user.setAuthor(epCont.author);
+				user.setEmail(null);
+				user.setLevel((byte)1);
+				user.setPassword("disabled");
+								
 				child.setId(childId);
 				child.setParent(parent);
-				child.setAuthor(legacyUser);
-				legacyUser.getEpisodes().add(child);
-				DBLegacyAuthor legacyAuthor = new DBLegacyAuthor();
-				legacyAuthor.setId(childId);
-				legacyAuthor.setAuthor(epCont.author);
+				child.setAuthor(user);
+				user.getEpisodes().add(child);
+				
 				parent.getChildren().add(child);
+				session.save(user);
 				session.save(child);
-				session.save(legacyAuthor);
 				session.merge(parent);
-				session.merge(legacyUser);
 				session.getTransaction().commit();
 			}
 		}
 	}
+	
+	
+	private static Date oldDate;
+	static {
+		Calendar c = Calendar.getInstance();
+		c.set(1991, 9, 17, 1, 1, 1);
+		oldDate = c.getTime();
+	}
+	
 	
 	private static class LegacyEpisodeContainer {
 		public final DBEpisode ep;
@@ -338,6 +364,13 @@ public class InitDB {
 	}
 	
 	private static DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+	/**
+	 * Sets title, link, author*, body, and date
+	 * Does not set id or parent
+	 * *author is in separate field in return object
+	 * @param f
+	 * @return
+	 */
 	private static LegacyEpisodeContainer readEpisode(File f) {
 		try {
 			Scanner in = new Scanner(f);
@@ -385,4 +418,15 @@ public class InitDB {
 		else return s.substring(0, l);
 	}
 	
+	private static ArrayList<Character> idChars = new ArrayList<>();
+	static {
+		for (char c='a'; c<='z'; ++c) idChars.add(c);
+		for (char c='A'; c<='Z'; ++c) idChars.add(c);
+		for (char c='0'; c<='9'; ++c) idChars.add(c);
+	}
+	private static String genLegacyID() {
+		StringBuilder sb = new StringBuilder();
+		for (int i=0; i<8; ++i) sb.append(idChars.get(r.nextInt(idChars.size())));
+		return "legacy" + sb.toString();
+	}
 }

@@ -2,35 +2,35 @@ package fb;
 
 import java.util.Comparator;
 
-import fb.db.DBEpisode;
+import fb.objects.Episode.ChildEpisode;
 
 public class Comparators {
 
 	/**
 	 * Episode with most children comes first
 	 */
-	public static Comparator<DBEpisode> childrenMostLeastComparator = new Comparator<DBEpisode>() {
+	public static Comparator<ChildEpisode> childrenMostLeastComparator = new Comparator<ChildEpisode>() {
 		@Override
-		public int compare(DBEpisode A, DBEpisode B) {
-			return Integer.compare(B.getChildren().size(), A.getChildren().size());
+		public int compare(ChildEpisode A, ChildEpisode B) {
+			return Integer.compare(B.count, A.count);
 		}
 	};
 	/**
 	 * Episode with least children comes first
 	 */
-	public static Comparator<DBEpisode> childrenLeastMostComparator = new Comparator<DBEpisode>() {
+	public static Comparator<ChildEpisode> childrenLeastMostComparator = new Comparator<ChildEpisode>() {
 		@Override
-		public int compare(DBEpisode A, DBEpisode B) {
-			return Integer.compare(A.getChildren().size(), B.getChildren().size());
+		public int compare(ChildEpisode A, ChildEpisode B) {
+			return Integer.compare(A.count, B.count);
 		}
 	};
 	/**
 	 * Episode with later key comes first
 	 */
-	public static Comparator<DBEpisode> reverseKeyComparator = new Comparator<DBEpisode>() {
+	public static Comparator<ChildEpisode> reverseKeyComparator = new Comparator<ChildEpisode>() {
 		@Override
-		public int compare(DBEpisode A, DBEpisode B) {
-			return Comparators.keyStringComparator.compare(B.getId(), A.getId());
+		public int compare(ChildEpisode A, ChildEpisode B) {
+			return Comparators.keyStringComparator.compare(B.id, A.id);
 		}
 	};
 	/**
@@ -64,11 +64,21 @@ public class Comparators {
 	/**
 	 * Episode with earlier key comes first
 	 */
-	public static Comparator<DBEpisode> keyComparator = new Comparator<DBEpisode>() {
+	public static Comparator<ChildEpisode> keyComparator = new Comparator<ChildEpisode>() {
+		@Override
+		public int compare(ChildEpisode A, ChildEpisode B) {
+			return keyStringComparator.compare(A.id, B.id);
+		}
+	};
+	
+	/**
+	 * Episode with earlier key comes first
+	 */
+	/*public static Comparator<DBEpisode> keyComparator = new Comparator<DBEpisode>() {
 		@Override
 		public int compare(DBEpisode A, DBEpisode B) {
 			return keyStringComparator.compare(A.getId(), B.getId());
 		}
-	};
+	};*/
 
 }

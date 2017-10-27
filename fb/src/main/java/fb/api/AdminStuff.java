@@ -11,8 +11,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import fb.Accounts;
+import fb.Accounts.FBLoginException;
 import fb.Strings;
-import fb.db.DBUser;
+import fb.objects.User;
 
 @Path("")
 public class AdminStuff {
@@ -20,10 +21,14 @@ public class AdminStuff {
 	@GET
 	@Path("admin")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {
-		DBUser user = Accounts.getUser(fbtoken);
-		if (user == null) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
-		if (user.getLevel()<100) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that")).build();
+	public Response admin(@CookieParam("fbtoken") Cookie fbtoken) {
+		User user;
+		try {
+			user = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
+		}
+		if (user.level<100) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that")).build();
 		return Response.ok(Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "")).build();
 	}
 	
