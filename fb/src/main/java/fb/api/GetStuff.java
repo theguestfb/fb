@@ -28,8 +28,8 @@ public class GetStuff {
 	@GET
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getRoot(@CookieParam("fbtoken") Cookie fbtoken) {
-		String welcome = Strings.getFile("welcome.html", fbtoken);
-		return Response.ok(welcome).build();
+		//String welcome = Strings.getFile("welcome.html", fbtoken);
+		return Response.ok(Story.getWelcome(fbtoken)).build();
 	}
 
 	/**
@@ -54,7 +54,21 @@ public class GetStuff {
 	@Path("get/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response get(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 0, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 0, "0", fbtoken)).build();
+	}
+	
+	/**
+	 * Gets an episode by its id, default sort
+	 * 
+	 * @param id
+	 *            id of episode (1-7-4-...-3)
+	 * @return HTML episode with id
+	 */
+	@GET
+	@Path("get/{id}/{settings}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response get(@PathParam("id") String id, @PathParam("settings") String settings, @CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Story.getHTML(id, 0, settings, fbtoken)).build();
 	}
 
 	/**
@@ -68,7 +82,7 @@ public class GetStuff {
 	@Path("getnewest/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getnewest(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 1, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 1, "0", fbtoken)).build();
 	}
 
 	/**
@@ -82,7 +96,7 @@ public class GetStuff {
 	@Path("getmostfirst/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getmostfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 2, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 2, "0", fbtoken)).build();
 	}
 
 	/**
@@ -96,7 +110,7 @@ public class GetStuff {
 	@Path("getleastfirst/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getleastfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 3, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 3, "0", fbtoken)).build();
 	}
 
 	/**
@@ -110,7 +124,7 @@ public class GetStuff {
 	@Path("getrandom/{id}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getrandom(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 4, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 4, "0", fbtoken)).build();
 	}
 	
 	/**
@@ -135,7 +149,7 @@ public class GetStuff {
 		sb.append(ep.link + "\n");
 		sb.append(ep.title + "\n");
 		sb.append(ep.authorName + "\n");
-		sb.append(Story.outputDate.format(ep.date) + "\n");
+		sb.append(Strings.outputDateFormat(ep.date) + "\n");
 		sb.append(ep.body + "\n");
 		return sb.toString();
 	}

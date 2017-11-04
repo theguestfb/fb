@@ -1,7 +1,5 @@
 package fb;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -14,7 +12,13 @@ import org.commonmark.Extension;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.node.Block;
+import org.commonmark.node.BlockQuote;
+import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.Heading;
+import org.commonmark.node.HtmlBlock;
+import org.commonmark.node.IndentedCodeBlock;
+import org.commonmark.node.ListBlock;
+import org.commonmark.node.ThematicBreak;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
@@ -25,7 +29,7 @@ import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
 import fb.objects.Episode.ChildEpisode;
-import fb.objects.Recents;
+import fb.objects.EpisodeList;
 import fb.objects.User;
 
 /**
@@ -49,7 +53,16 @@ public class Story {
 	 * @param id id of episode
 	 * @return HTML episode
 	 */
-	public static String getHTML(String id, int sort, Cookie token) {
+	public static String getHTML(String id, int sort, String settings, Cookie token) {
+		
+		int set;
+		try {
+			set = Integer.parseInt(settings.trim());
+			if (set < 0 || set > 127) return Strings.getFile("generic.html", token).replace("$EXTRA", "Invalid settings " + settings);
+		} catch (NumberFormatException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Invalid settings " + settings);
+		}
+		
 		Episode ep;
 		try {
 			ep = DB.getEp(id);
@@ -96,17 +109,17 @@ public class Story {
 			
 			return Strings.getFile("story.html", token)
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
-					.replace("$BODY", formatBody(ep.body))
+					.replace("$BODY", formatBody(ep.body, set))
 					.replace("$AUTHOR", author)
 					.replace("$PARENTID", (ep.parentId == null) ? ".." : HtmlEscapers.htmlEscaper().escape(ep.parentId))
 					.replace("$ID", id)
-					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(outputDate.format(ep.date)))
+					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.date)))
 					.replace("$MODIFY", modify)
 					.replace("$ADDEP", addEp)
 					.replace("$CHILDREN", sb.toString());
 	}
 	
-	public static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
+	
 	
 	/**
 	 * Gets an list of recent episodes
@@ -114,7 +127,7 @@ public class Story {
 	 * @return HTML recents
 	 */
 	public static String getRecents(Cookie token) {
-		Recents recents;
+		EpisodeList recents;
 		try {
 			recents = DB.getRecents();
 		} catch (DBException e) {
@@ -122,25 +135,37 @@ public class Story {
 		}
 				
 		StringBuilder sb = new StringBuilder();
-		for (Episode child : recents.recents) if (child != null){
-			String story = "";
-			switch (child.id.split("-")[0]) {
-			case "1":
-				story = "(Forum)";
-				break;
-			case "2":
-				story = "(You Are What You Wish)";
-				break;
-			case "3":
-				story = "(Altered Fates)";
-				break;
-			case "4":
-				story = "(The Future of Gaming)";
-				break;
+		for (Episode child : recents.episodes) if (child != null){
+			String story;
+			try {
+				story = "(" + DB.getEp(child.id.split("-")[0]).link + ")";
+			} catch (DBException e) {
+				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + outputDate.format(child.date) + " " + story + "</p>");
+			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
+		
+	}
+	
+	/**
+	 * Gets an list of recent episodes
+	 * 
+	 * @return HTML recents
+	 */
+	public static String getWelcome(Cookie token) {
+		EpisodeList roots;
+		try {
+			roots = DB.getRoots();
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
+		}
+				
+		StringBuilder sb = new StringBuilder();
+		for (Episode ep : roots.episodes) {
+			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.children.size() + ")" + "</h3>");
+		}
+		return Strings.getFile("welcome.html", token).replace("$EPISODES", sb.toString());
 		
 	}
 	
@@ -189,6 +214,45 @@ public class Story {
 		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 		try {
 			return DB.addEp(id, link, title, body, user.id, new Date()).id;
+		} catch (DBException e) {
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
+		}
+	}
+	
+	/**
+	 * Returns the form for adding new root episodes, or error page if not admin
+	 * @param id id of parent episode
+	 * @return HTML form
+	 */
+	public static String newRootForm(Cookie token) {
+		//if (!Accounts.isLoggedIn(token)) 
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e1) {
+			return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes");
+		}
+		if (user.level < 100) return Strings.getFile("generic.html",token).replace("$EXTRA", "Only admins can add new root episodes");
+
+		return Strings.getFile("newrootform.html", token);
+	}
+	
+	public static String newRootPost(String link, String title, String body, Cookie token) throws EpisodeException {
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to add episodes"));
+		}
+		if (user.level < 100) return Strings.getFile("generic.html",token).replace("$EXTRA", "Only admins can add new root episodes");
+		link = link.trim();
+		title = title.trim();
+		body = body.trim();
+		
+		String errors = checkEpisode(link, title, body);
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
+		try {
+			return DB.addRootEp(link, title, body, user.id, new Date()).id;
 		} catch (DBException e) {
 			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
 		}
@@ -304,33 +368,83 @@ public class Story {
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
 	
-	private static final String[] replacers = {"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES"};
+	private static final String[] replacers = {"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES","$STYLE"};
 	
 	/**
 	 * Escape body text and convert markdown/formatting to HTML
 	 * @param body unformatted markdown body
 	 * @return HTML formatted body
 	 */
-	private static String formatBody(String body) {
+	public static String formatBody(String body, int settings) {
 		String ret = body;
 		ret = HtmlEscapers.htmlEscaper().escape(ret);
-		ret = renderer.render(parser.parse(ret));
+		
+		HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
+		
+		if (settings >= 64) {
+			enabledBlockTypes.add(HtmlBlock.class);
+			settings -= 64;
+		}
+		
+		if (settings >= 32) {
+			enabledBlockTypes.add(FencedCodeBlock.class);
+			settings -= 32;
+		}
+		
+		if (settings >= 16) {
+			enabledBlockTypes.add(IndentedCodeBlock.class);
+			settings -= 16;
+		}
+		
+		if (settings >= 8) {
+			enabledBlockTypes.add(ListBlock.class);
+			settings -= 8;
+		}
+		
+		if (settings >= 4) {
+			enabledBlockTypes.add(BlockQuote.class);
+			settings -= 4;
+		}
+		
+		if (settings >= 2) {
+			enabledBlockTypes.add(ThematicBreak.class);
+			settings -= 2;
+		}
+		
+		if (settings >= 1) {
+			enabledBlockTypes.add(Heading.class);
+			settings -= 1;
+		}
+		
+		//ret = renderer.render(parser.parse(ret));
+		ret = renderer.render(Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build().parse(ret));
 		return ret;
 	}
-	private static Parser parser;
+	
+	//private static Parser parser;
 	private static HtmlRenderer renderer;
+	
+	private static HashSet<Extension> extensions = new HashSet<>();
+	
 	static {
-		HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
-		HashSet<Extension> extensions = new HashSet<>();
+		//HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
+		//HashSet<Extension> extensions = new HashSet<>();
 
-		enabledBlockTypes.add(Heading.class);
+		//enabledBlockTypes.add(Heading.class);
+		//enabledBlockTypes.add(HtmlBlock.class);
+		//enabledBlockTypes.add(ThematicBreak.class);
+		//enabledBlockTypes.add(FencedCodeBlock.class);
+		//enabledBlockTypes.add(IndentedCodeBlock.class);
+		//enabledBlockTypes.add(BlockQuote.class);
+		//enabledBlockTypes.add(ListBlock.class);
 		
 		extensions.add(StrikethroughExtension.create());
 		extensions.add(AutolinkExtension.create());
 		
-		parser = Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build();
+		//parser = Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build();
 		renderer = HtmlRenderer.builder().extensions(extensions).build();
 	}
+	
 	
 	
 	private static String notFound(String id) {

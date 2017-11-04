@@ -12,13 +12,12 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import fb.Strings;
 import fb.objects.Episode;
-import fb.objects.Recents;
+import fb.objects.EpisodeList;
 import fb.objects.User;
 
 public class DB {
 	
 	public static final String ROOT_ID = "fbadministrator1";
-	//public static final String LEGACY_ID = "fictionbranches1";
 	
 	private static SessionFactory sessionFactory = null;
 	private static Session session;
@@ -32,7 +31,7 @@ public class DB {
 				configuration.addAnnotatedClass(DBLegacyId.class);
 				configuration.addAnnotatedClass(DBUser.class);
 				configuration.addAnnotatedClass(DBEmail.class);
-				//configuration.addAnnotatedClass(DBLegacyAuthor.class);
+				configuration.addAnnotatedClass(DBRootEpisodes.class);
 
 				StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
 						.applySettings(configuration.getProperties());
@@ -119,6 +118,68 @@ public class DB {
 	}
 	
 	/**
+	 * Adds a new root episode to the site
+	 * 
+	 * This method checks that the author exists, and that the new child id will not be longer than the allowed 4096 characters
+	 * 
+	 * This method DOES NOT check that link/title/body are within acceptable limits
+	 * 
+	 * @param title title of new episode
+	 * @param body body of new episode
+	 * @param author author of new episode
+	 * @return child DBEpisode object
+	 * @throws DBException if parent ep or author does not exist, or if new keystring is too long
+	 */
+	public static Episode addRootEp(String link, String title, String body, String authorId, Date date) throws DBException {
+		synchronized (dbLock) {
+			//DBEpisode parent = session.get(DBEpisode.class, id);
+			DBRecents recents = session.get(DBRecents.class, 1);
+			DBUser author = session.get(DBUser.class, authorId);
+			DBRootEpisodes roots = session.get(DBRootEpisodes.class, 1);
+
+			//if (parent == null) throw new DBException("Not found: " + id);
+			if (author == null) throw new DBException("Author does not exist");
+
+			DBEpisode child;
+			child = new DBEpisode();
+			
+			String childId = "" + (Integer.parseInt(roots.getRoots().get(roots.getRoots().size()-1).getId()) + 1);
+			if (childId.length() > 4096) {
+				session.getTransaction().commit();
+				throw new DBException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
+			}
+			child.setId(childId);
+			
+			child.setTitle(title);
+			child.setLink(link);
+			child.setBody(body);
+			child.setAuthor(author);
+			child.setParent(null);
+			child.setDate(date);
+			
+			author.getEpisodes().add(child);
+		
+			session.beginTransaction();
+			
+			while (recents.getRecents().size() >= 25) recents.getRecents().remove(recents.getRecents().size() - 1);
+			recents.getRecents().add(0, child);
+			
+			roots.getRoots().add(child);
+			
+			//parent.getChildren().add(child);
+			
+			session.save(child);
+			session.merge(roots);
+			session.merge(author);
+			session.merge(recents);
+			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
+			session.getTransaction().commit();
+			Episode ret = new Episode(child);
+			return ret;
+		}
+	}
+	
+	/**
 	 * Modifies an episode of the story
 	 * @param id id of episode
 	 * @param title new title of new episode
@@ -149,10 +210,12 @@ public class DB {
 	 * @throws DBException if episode id does not exist
 	 */
 	public static Episode getEp(String id) throws DBException {
-		DBEpisode ep = session.get(DBEpisode.class, id);
-		if (ep == null) throw new DBException("Not found: " + id);
-		Episode ret = new Episode(ep);
-		return ret;
+		synchronized (dbLock) {
+			DBEpisode ep = session.get(DBEpisode.class, id);
+			if (ep == null) throw new DBException("Not found: " + id);
+			Episode ret = new Episode(ep);
+			return ret;
+		}
 	}
 	
 	/**
@@ -175,11 +238,24 @@ public class DB {
 	 * @return
 	 * @throws DBException wtf
 	 */
-	public static Recents getRecents() throws DBException {
+	public static EpisodeList getRecents() throws DBException {
 		synchronized(dbLock) {
 			DBRecents recents = session.get(DBRecents.class, 1);
 			if (recents == null) throw new DBException("Recents not found (tell Phoenix if you see this, it should never happen)");
-			return new Recents(recents);
+			return new EpisodeList(recents);
+		}
+	}
+	
+	/**
+	 * Retrieves root episodes from the db
+	 * @return
+	 * @throws DBException wtf
+	 */
+	public static EpisodeList getRoots() throws DBException {
+		synchronized(dbLock) {
+			DBRootEpisodes roots = session.get(DBRootEpisodes.class, 1);
+			if (roots == null) throw new DBException("Recents not found (tell Phoenix if you see this, it should never happen)");
+			return new EpisodeList(roots);
 		}
 	}
 	
@@ -240,6 +316,24 @@ public class DB {
 	}
 	
 	/**
+	 * Change a user's theme
+	 * @param id id of user
+	 * @param newTheme new theme (HTML name, not file name)
+	 * @throws DBException if id not found
+	 */
+	public static void changeTheme(String id, String newTheme) throws DBException {
+		synchronized (dbLock) {
+			DBUser user = getSession().get(DBUser.class, id);
+			if (user == null) throw new DBException("User id does not exist");
+			user.setTheme(newTheme);
+			getSession().beginTransaction();
+			getSession().merge(user);
+			getSession().getTransaction().commit();
+		}
+	}
+	
+
+	/**
 	 * Change a user's author name
 	 * @param id id of user
 	 * @param newPassword new HASHED password (NOT PLAINTEXT)
@@ -279,9 +373,11 @@ public class DB {
 	 * @throws DBException if id does not exist
 	 */
 	public static User getUser(String id) throws DBException {
-		DBUser user = getSession().get(DBUser.class, id);
-		if (user == null) throw new DBException("User id does not exist");
-		return new User(user);
+		synchronized (dbLock) {
+			DBUser user = getSession().get(DBUser.class, id);
+			if (user == null) throw new DBException("User id does not exist");
+			return new User(user);
+		}
 	}
 	
 	/**

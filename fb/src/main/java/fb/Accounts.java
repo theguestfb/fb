@@ -169,7 +169,7 @@ public class Accounts {
 				story = "(The Future of Gaming)";
 				break;
 			}
-			sb.append("<a href=/fb/get/" + ep.id + ">" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</a> " + Story.outputDate.format(ep.date) + " " + story + "<br/>");
+			sb.append("<a href=/fb/get/" + ep.id + ">" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</a> " + Strings.outputDateFormat(ep.date) + " " + story + "<br/>");
 		}
 		
 		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$EPISODES", sb.toString());
@@ -286,7 +286,7 @@ public class Accounts {
 		PotentialUser createUser = new PotentialUser(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
 		createQueue.put(createToken, createUser);
 		if (!sendEmail(email, "Confirm your Fiction Branches account", 
-				"Please click the following link (or copy/paste it into your browser) to verify your account: https://test.fictionbranches.net/fb/confirmaccount/" + createToken + " (This link is only good for 24 hours.)")) {
+				"<html><body>Please click the following link (or copy/paste it into your browser) to verify your account: <a href=https://" + Strings.DOMAIN + "/fb/confirmaccount/" + createToken + ">https://" + Strings.DOMAIN + "/fb/confirmaccount/" + createToken + "</a> (This link is only good for 24 hours.)</body></html>")) {
 			return Strings.getFile("generic.html",null).replace("$EXTRA", "Unable to send verification email, talk to Phoenix about it");
 		}
 		return Strings.getFile("generic.html",null).replace("$EXTRA", "Check your email (and your spam folder) for a confirmation email from noreply@fictionbranches.net");
@@ -315,6 +315,30 @@ public class Accounts {
 			DB.changeAuthorName(user.id, author);
 		} catch (DBException e) {
 			throw new FBLoginException(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+	}
+	
+	/**
+	 * Changes the author name of the currently logged in user
+	 * @param fbtoken
+	 * @param theme new theme name
+	 * @throws FBLoginException if user is not logged in, or is root
+	 */
+	public static void changeTheme(Cookie fbtoken, String theme) throws FBLoginException {
+		if (fbtoken == null) throw new FBLoginException(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		UserSession sesh = active.get(fbtoken.getValue());
+		if (sesh == null) throw new FBLoginException(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		User user;
+		try {
+			user = DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+		//if (user.id.equals(DB.ROOT_ID)) throw new FBLoginException(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "This user account may not be modified"));
+		try {
+			DB.changeTheme(user.id, theme);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "Invalid user"));
 		}
 	}
 	
@@ -378,8 +402,8 @@ public class Accounts {
 		String changeToken = newToken(emailChangeQueue);
 		EmailChange emailChange = new EmailChange(sesh.userID, email);
 		emailChangeQueue.put(changeToken, emailChange);
-		if (!sendEmail(email, "Confirm your new Fiction Branches account email", 
-				"Please click the following link (or copy/paste it into your browser) to verify your new email address: https://test.fictionbranches.net/fb/confirmemailchange/" + changeToken + " (This link is only good for 24 hours.)\nAfter taking this action, you will have to use your new email address to log in.")) {
+		if (!sendEmail(email, "<html><body>Confirm your new Fiction Branches account email", 
+				"Please click the following link (or copy/paste it into your browser) to verify your new email address: <a href=https://" + Strings.DOMAIN + "/fb/confirmemailchange/" + changeToken + ">https://" + Strings.DOMAIN + "/fb/confirmemailchange/" + changeToken + "</a> (This link is only good for 24 hours.)\nAfter taking this action, you will have to use your new email address to log in.</body></html>")) {
 			return "Unable to send verification email, talk to Phoenix about it";
 		}
 		return Strings.getFile("generic.html",null).replace("$EXTRA", "Check your email (and your spam folder) for a confirmation email from noreply@fictionbranches.net");
@@ -401,22 +425,6 @@ public class Accounts {
 			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Email address successfully changed");
 		} else return Strings.getFile("generic.html",fbtoken).replace("$EXTRA", "Confirmation link is expired, invalid, or has already been used");
 	}
-	
-	/**
-	 * Changes the level of a user, or errors if no permission or bad userID
-	 * @param userID
-	 * @param newLevel
-	 * @param fbtoken
-	 * @return HTML response
-	 */
-	/*public static String changeLevel(String userID, byte newLevel, Cookie fbtoken) {
-		User admin = Accounts.getUser(fbtoken);
-		if (admin == null) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that");
-		if (admin.id.equals(DB.ROOT_ID)) return "This user account may not be modified";
-		if (admin.level<100) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that");
-		if (!DB.changeUserLevel(userID, newLevel)) return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA","Invalid user ID " + userID);
-		return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", userID + " is now " + ((newLevel==((byte)100))?("an admin"):((newLevel==((byte)10))?("a mod"):("a normal user"))));
-	}*/
 	
 	/**
 	 * @param userID
@@ -485,7 +493,7 @@ public class Accounts {
 			msg.setFrom(new InternetAddress("noreply@fictionbranches.net", "Fiction Branches"));
 			msg.setReplyTo(InternetAddress.parse("noreply@fictionbranches.net", false));
 			msg.setSubject(subject, "UTF-8");
-			msg.setText(body, "UTF-8");
+			msg.setText(body, "UTF-8", "html");
 			msg.setSentDate(new Date());
 			msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toAddress, false));
 			Transport.send(msg);

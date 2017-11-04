@@ -183,6 +183,34 @@ public class AccountStuff {
 	}
 	
 	@GET
+	@Path("changetheme")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changetheme(@CookieParam("fbtoken") Cookie fbtoken) {
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
+		return Response.ok(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "").replace("$THEMES", Strings.getSelectThemes())).build();
+	}
+	
+	@POST
+	@Path("changethemepost")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changethemepost(@FormParam("theme") String theme, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		try {
+			Accounts.changeTheme(fbtoken, theme);
+		} catch (FBLoginException e) {
+			return Response.ok(e.getMessage()).build();  //failed, try again
+		}
+		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+	}
+	
+	@GET
 	@Path("changepassword")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {	

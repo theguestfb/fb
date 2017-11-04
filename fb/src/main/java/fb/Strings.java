@@ -21,15 +21,22 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.core.Cookie;
 
 import com.google.gson.Gson;
 
+import fb.Accounts.FBLoginException;
 import fb.json.JsonCaptchaResponse;
 
 public class Strings {
@@ -38,11 +45,22 @@ public class Strings {
 	
 	private static ConcurrentHashMap<String,String> files = new ConcurrentHashMap<>();
 	
+	private static ConcurrentHashMap<String,String> styles = new ConcurrentHashMap<>(); // <HTML name, css file name (without .css)>
+	private static Object styleLock = new Object();
+	
+	public static String DOMAIN = readFile("/opt/fb/domain.txt");
 	public static String SMTP_PASSWORD = readFile("/opt/fb/smtp_password.txt");
 	public static String RECAPTCHA_SECRET = readFile("/opt/fb/recaptcha_secret.txt");
 	
 	public static String getFile(String name, Cookie fbtoken) {
-		return files.get(name).replace("$ACCOUNT", Accounts.getAccount(fbtoken));
+		String theme;
+		try {
+			theme = styles.get(Accounts.getUser(fbtoken).theme);
+		} catch (FBLoginException e) {
+			theme = null;
+		}
+		if (theme == null) theme = "default";
+		return files.get(name).replace("$ACCOUNT", Accounts.getAccount(fbtoken)).replace("$STYLE", theme);
 	}
 	
 	public static String readFile(String path) {
@@ -54,6 +72,17 @@ public class Strings {
 			StringBuilder sb = new StringBuilder();
 			int x;
 			while ((x = in.read()) != -1) sb.append((char)x);
+			
+			if (file.getName().toLowerCase().contains("styles.txt")) try (Scanner scan = new Scanner(sb.toString())) { synchronized (styleLock){
+				styles.clear();
+				Strings.log("Updating styles");
+				while (scan.hasNext()) {
+					String key = scan.nextLine();
+					String val = scan.nextLine();
+					styles.put(key, val);
+				}
+			}}
+			
 			return sb.toString();
 		} catch (IOException e) {
 			return "Not found";
@@ -65,12 +94,13 @@ public class Strings {
 	 * @param message
 	 */
 	public static void log(String message) {
-		int y = Calendar.getInstance().get(Calendar.YEAR);
-		int mo = Calendar.getInstance().get(Calendar.MONTH);
-		int d = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
-		int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-		int mi = Calendar.getInstance().get(Calendar.MINUTE);
-		int s = Calendar.getInstance().get(Calendar.SECOND);
+		Calendar c = Calendar.getInstance();
+		int y = c.get(Calendar.YEAR);
+		int mo = c.get(Calendar.MONTH);
+		int d = c.get(Calendar.DAY_OF_MONTH);
+		int h = c.get(Calendar.HOUR_OF_DAY);
+		int mi = c.get(Calendar.MINUTE);
+		int s = c.get(Calendar.SECOND);
 		try (BufferedWriter out = new BufferedWriter(new FileWriter("/opt/fb/log.txt", true))) {
 			out.write(String.format("%04d-%02d-%02d %02d:%02d:%02d %s", y, mo, d, h, mi, s, message));
 			out.newLine();
@@ -105,7 +135,7 @@ public class Strings {
 			}
 		} else log("Directory " + dirFile.getAbsolutePath() + " does not exist");
 		
-		for (File file : dirFile.listFiles()) if (!file.getName().startsWith(".") && file.getName().endsWith(".html")) {
+		for (File file : dirFile.listFiles()) if (!file.getName().startsWith(".") ) {
 			files.put(file.getName(), readFile(file));
 			Strings.log("Loading file " + file.getName());
 		}
@@ -143,6 +173,15 @@ public class Strings {
 				}
 			}
 		}.start();
+	}
+	
+	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
+	public static String outputDateFormat(Date date) {
+		String ret;
+		synchronized(outputDate) {
+			ret = outputDate.format(date);
+		}
+		return ret;
 	}
 
 	/**
@@ -218,5 +257,16 @@ public class Strings {
 		}
 		JsonCaptchaResponse response = new Gson().fromJson(json.toString(), JsonCaptchaResponse.class);
 		return response.getSuccess()?"true":"false";
+	}
+
+	public static String getSelectThemes() {
+		ArrayList<String> list = new ArrayList<>();
+		synchronized (styleLock) {
+			for (String theme : styles.keySet()) list.add(theme);
+		}
+		Collections.sort(list);
+		StringBuilder sb = new StringBuilder();
+		for (String theme : list) sb.append(String.format("<option value=\"%s\">%s</option>%n", theme, theme));
+		return sb.toString();
 	}
 }

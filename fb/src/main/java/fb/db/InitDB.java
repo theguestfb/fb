@@ -89,7 +89,7 @@ public class InitDB {
 		Strings.log("finished tfog: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		/*readStory(session, "af", "3");
+		readStory(session, "af", "3");
 		stop = System.nanoTime();
 		Strings.log("finished af: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
@@ -101,21 +101,41 @@ public class InitDB {
 		
 		readStory(session, "yawyw", "2");
 		stop = System.nanoTime();
-		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));*/
+		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
+		{
 		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
 		Strings.log("Initializing recents");
 		DBRecents recents = new DBRecents();
 		recents.setId(1);
 		
-		//recents.getRecents().add(session.get(DBEpisode.class, "1"));
-		//recents.getRecents().add(session.get(DBEpisode.class, "2"));
-		//recents.getRecents().add(session.get(DBEpisode.class, "3"));
+		recents.getRecents().add(session.get(DBEpisode.class, "1"));
+		recents.getRecents().add(session.get(DBEpisode.class, "2"));
+		recents.getRecents().add(session.get(DBEpisode.class, "3"));
 		recents.getRecents().add(session.get(DBEpisode.class, "4"));
 		session.beginTransaction();
 		session.save(recents);
 		session.getTransaction().commit();
 		Strings.log("Added recents");
+		
+		}
+		
+		
+		{
+		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
+		Strings.log("Initializing roots");
+		DBRootEpisodes roots = new DBRootEpisodes();
+		roots.setId(1);
+		
+		roots.getRoots().add(session.get(DBEpisode.class, "1"));
+		roots.getRoots().add(session.get(DBEpisode.class, "2"));
+		roots.getRoots().add(session.get(DBEpisode.class, "3"));
+		roots.getRoots().add(session.get(DBEpisode.class, "4"));
+		session.beginTransaction();
+		session.save(roots);
+		session.getTransaction().commit();
+		Strings.log("Added roots");
+		}
 		
 		session.close();
 		DB.getSessionFactory().close();
@@ -404,7 +424,7 @@ public class InitDB {
 			StringBuilder body = new StringBuilder();
 			body.append(line + "  \n");
 			while (in.hasNext()) body.append(in.nextLine() + "  \n");
-			ep.setBody(body.toString());
+			ep.setBody(body.toString().replace('`', '\''));
 			in.close();
 			return new LegacyEpisodeContainer(ep, author);
 		} catch (FileNotFoundException e) {

@@ -27,6 +27,8 @@ public class DBUser {
 	
 	private byte level; // 1=user, 10=mod, 100=admin, 
 	
+	private String theme = "Default";
+	
 	@OneToMany(mappedBy = "author")
 	private List<DBEpisode> episodes = new ArrayList<>();
 	
@@ -76,6 +78,14 @@ public class DBUser {
 
 	public void setLevel(byte level) {
 		this.level = level;
+	}
+
+	public String getTheme() {
+		return theme;
+	}
+
+	public void setTheme(String theme) {
+		this.theme = theme;
 	}
 	
 }
