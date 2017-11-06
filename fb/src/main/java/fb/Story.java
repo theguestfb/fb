@@ -67,7 +67,8 @@ public class Story {
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e) {
-			return notFound(id);
+			//return notFound(id);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 			StringBuilder sb = new StringBuilder();
 			ArrayList<ChildEpisode> children = ep.children;
@@ -183,7 +184,8 @@ public class Story {
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e) {
-			return notFound(id);
+			//return notFound(id);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 		return Strings.getFile("addform.html", token)
 				.replace("$TITLE", ep.title)
@@ -278,7 +280,8 @@ public class Story {
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e) {
-			return notFound(id);
+			//return notFound(id);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 		User user;
 		try {
@@ -308,7 +311,8 @@ public class Story {
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e1) {
-			throw new EpisodeException(notFound(id));
+			//throw new EpisodeException(notFound(id));
+			throw new EpisodeException(Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id));
 		}
 		User user;
 		try {
@@ -444,10 +448,5 @@ public class Story {
 		//parser = Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build();
 		renderer = HtmlRenderer.builder().extensions(extensions).build();
 	}
-	
-	
-	
-	private static String notFound(String id) {
-		return "<html><head><title>Fiction Branches</title></head><body><h1>Not found</h1>" + id + "</body></html>";
-	}	
+
 }
