@@ -41,6 +41,7 @@ import fb.json.JsonCaptchaResponse;
 
 public class Strings {
 	
+	public static final String BASE_DIR = "/opt/fb"; // no trailing /
 	public static final boolean RECAPTCHA = false;
 	
 	private static ConcurrentHashMap<String,String> files = new ConcurrentHashMap<>();
@@ -48,9 +49,9 @@ public class Strings {
 	private static ConcurrentHashMap<String,String> styles = new ConcurrentHashMap<>(); // <HTML name, css file name (without .css)>
 	private static Object styleLock = new Object();
 	
-	public static String DOMAIN = readFile("/opt/fb/domain.txt");
-	public static String SMTP_PASSWORD = readFile("/opt/fb/smtp_password.txt");
-	public static String RECAPTCHA_SECRET = readFile("/opt/fb/recaptcha_secret.txt");
+	public static String DOMAIN = readFile(BASE_DIR + "/domain.txt");
+	public static String SMTP_PASSWORD = readFile(BASE_DIR + "/smtp_password.txt");
+	public static String RECAPTCHA_SECRET = readFile(BASE_DIR + "/recaptcha_secret.txt");
 	
 	public static String getFile(String name, Cookie fbtoken) {
 		String theme;
@@ -101,7 +102,7 @@ public class Strings {
 		int h = c.get(Calendar.HOUR_OF_DAY);
 		int mi = c.get(Calendar.MINUTE);
 		int s = c.get(Calendar.SECOND);
-		try (BufferedWriter out = new BufferedWriter(new FileWriter("/opt/fb/log.txt", true))) {
+		try (BufferedWriter out = new BufferedWriter(new FileWriter(BASE_DIR + "/log.txt", true))) {
 			out.write(String.format("%04d-%02d-%02d %02d:%02d:%02d %s", y, mo, d, h, mi, s, message));
 			out.newLine();
 			out.flush();
@@ -127,7 +128,7 @@ public class Strings {
 			log("Error creating watch service");
 			return;
 		}
-		File dirFile = new File("/opt/fb/static_snippets");
+		File dirFile = new File(BASE_DIR + "/static_snippets");
 		if (dirFile.exists()) {
 			if (!dirFile.isDirectory()) {
 				log(dirFile.getAbsolutePath() + " exists and is not a directory");
