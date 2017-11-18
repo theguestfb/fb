@@ -2,8 +2,13 @@
 <!--this is a test comment-->
 <html lang="en">
 <head>
-<title>Fiction Branches</title>
-<link rel="import" href="/static/header.html">
+<title>$TITLE</title>
+<link rel="stylesheet" href="/static/css/$STYLE.css">
+<link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="/favicon-120x120.png">
 </head>
 <body>
 
@@ -15,7 +20,7 @@ $ACCOUNT
 
 	<h1>$TITLE</h1>
 	<p>Episode submitted by $AUTHOR on $DATE</p>
-	<p><a href=$PARENTID>Return to Parent Episode</a> <a href=../modify/$ID>Modify</a></p>
+	<p><a href=$PARENTID>Return to Parent Episode</a> $MODIFY</p>
 	<hr />
 	$BODY
 	<hr />
@@ -28,11 +33,15 @@ $ACCOUNT
 		<option value="../getrandom/$ID">Random</option>
 	</select>
 	<hr />
+	<p>$ADDEP</p>
+	<hr/>
 	$CHILDREN
 	<hr />
 	<p>
-		<a href=../add/$ID>Add a new episode</a>
+		$ADDEP
 	</p>
-	<link rel="import" href="/static/footer.html">
+<br/><br/><br/>
+<p><a href="bitcoin:1GcTjtuchu1d4XnYNWHpyAHihot4NWV7n5">
+<img width=80 src="/images/bitcoin.png" alt="Donate Bitcoin" /></a></p>
 </body>
 </html>

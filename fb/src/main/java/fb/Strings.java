@@ -49,7 +49,7 @@ public class Strings {
 	private static ConcurrentHashMap<String,String> styles = new ConcurrentHashMap<>(); // <HTML name, css file name (without .css)>
 	private static Object styleLock = new Object();
 	
-	public static String DOMAIN = readFile(BASE_DIR + "/domain.txt");
+	public static String DOMAIN = readFile(BASE_DIR + "/domain.txt").trim();
 	public static String SMTP_PASSWORD = readFile(BASE_DIR + "/smtp_password.txt");
 	public static String RECAPTCHA_SECRET = readFile(BASE_DIR + "/recaptcha_secret.txt");
 	

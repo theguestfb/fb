@@ -1,0 +1,261 @@
+2017-10-14 15:30:20 Loading file accountconfirmed.html
+2017-10-14 15:30:20 Loading file addform.html
+2017-10-14 15:30:20 Loading file adminform.html
+2017-10-14 15:30:20 Loading file changeauthorform.html
+2017-10-14 15:30:20 Loading file changeemailform.html
+2017-10-14 15:30:20 Loading file changepasswordform.html
+2017-10-14 15:30:20 Loading file changethemeform.html
+2017-10-14 15:30:20 Loading file createaccountform.html
+2017-10-14 15:30:20 Loading file failure.html
+2017-10-14 15:30:20 Loading file formatting.html
+2017-10-14 15:30:20 Loading file generic.html
+2017-10-14 15:30:20 Loading file intro.html
+2017-10-14 15:30:20 Loading file loginform.html
+2017-10-14 15:30:20 Loading file modifyform.html
+2017-10-14 15:30:20 Loading file newrootform.html
+2017-10-14 15:30:20 Loading file profilepage.html
+2017-10-14 15:30:20 Loading file recents.html
+2017-10-14 15:30:20 Loading file story.html
+2017-10-14 15:30:20 Updating styles
+2017-10-14 15:30:20 Loading file styles.txt
+2017-10-14 15:30:20 Loading file success.html
+2017-10-14 15:30:20 Loading file useraccount.html
+2017-10-14 15:30:20 Loading file verifyaccount.html
+2017-10-14 15:30:20 Loading file welcome.html
+2017-10-14 15:30:20 Starting import
+2017-10-14 15:30:20 Importing tfog
+2017-10-14 15:30:20 Loading root of tfog
+2017-10-14 15:30:20 Loading index of tfog
+2017-10-14 15:30:20 Finding missing eps for tfog
+2017-10-14 15:30:20 Persisting legacy IDs for tfog
+2017-10-14 15:30:20 Done finding missing eps for tfog, waiting for legacy persistence to finish
+2017-10-14 15:30:20 Persisting episodes for tfog
+2017-10-14 15:30:22 finished tfog: 2.793206349
+2017-10-14 15:30:22 Importing af
+2017-10-14 15:30:22 Loading root of af
+2017-10-14 15:30:22 Loading index of af
+2017-10-14 15:30:22 Persisting legacy IDs for af
+2017-10-14 15:30:22 Finding missing eps for af
+2017-10-14 15:30:23 Done finding missing eps for af, waiting for legacy persistence to finish
+2017-10-14 15:30:26 Persisting episodes for af
+2017-10-14 15:30:37 finished af: 14.157075283
+2017-10-14 15:30:37 Importing forum
+2017-10-14 15:30:37 Loading root of forum
+2017-10-14 15:30:37 Loading index of forum
+2017-10-14 15:30:37 Finding missing eps for forum
+2017-10-14 15:30:37 Persisting legacy IDs for forum
+2017-10-14 15:30:37 Done finding missing eps for forum, waiting for legacy persistence to finish
+2017-10-14 15:30:56 Persisting episodes for forum
+2017-10-14 15:31:31 finished forum: 54.362697315
+2017-10-14 15:31:31 Importing yawyw
+2017-10-14 15:31:31 Loading root of yawyw
+2017-10-14 15:31:31 Loading index of yawyw
+2017-10-14 15:31:36 Persisting legacy IDs for yawyw
+2017-10-14 15:31:36 Finding missing eps for yawyw
+2017-10-14 15:31:38 Done finding missing eps for yawyw, waiting for legacy persistence to finish
+2017-10-14 15:50:55 Persisting episodes for yawyw
+2017-10-14 17:25:36 finished yawyw: 6845.211999618
+2017-10-14 17:25:36 Initializing recents
+2017-10-14 17:25:37 Added recents
+2017-10-14 17:25:37 Initializing roots
+2017-10-14 17:25:37 Added roots
+2017-10-14 17:25:38 Fin
+2017-10-14 22:13:04 Loading file accountconfirmed.html
+2017-10-14 22:13:04 Loading file addform.html
+2017-10-14 22:13:04 Loading file adminform.html
+2017-10-14 22:13:04 Loading file changeauthorform.html
+2017-10-14 22:13:04 Loading file changeemailform.html
+2017-10-14 22:13:04 Loading file changepasswordform.html
+2017-10-14 22:13:04 Loading file changethemeform.html
+2017-10-14 22:13:04 Loading file createaccountform.html
+2017-10-14 22:13:04 Loading file failure.html
+2017-10-14 22:13:04 Loading file formatting.html
+2017-10-14 22:13:04 Loading file generic.html
+2017-10-14 22:13:04 Loading file intro.html
+2017-10-14 22:13:04 Loading file loginform.html
+2017-10-14 22:13:04 Loading file modifyform.html
+2017-10-14 22:13:04 Loading file newrootform.html
+2017-10-14 22:13:04 Loading file profilepage.html
+2017-10-14 22:13:04 Loading file recents.html
+2017-10-14 22:13:04 Loading file story.html
+2017-10-14 22:13:04 Updating styles
+2017-10-14 22:13:04 Loading file styles.txt
+2017-10-14 22:13:05 Loading file success.html
+2017-10-14 22:13:05 Loading file useraccount.html
+2017-10-14 22:13:05 Loading file verifyaccount.html
+2017-10-14 22:13:05 Loading file welcome.html
+2017-10-16 02:03:48 Loading file accountconfirmed.html
+2017-10-16 02:03:48 Loading file addform.html
+2017-10-16 02:03:48 Loading file adminform.html
+2017-10-16 02:03:48 Loading file changeauthorform.html
+2017-10-16 02:03:48 Loading file changeemailform.html
+2017-10-16 02:03:48 Loading file changepasswordform.html
+2017-10-16 02:03:48 Loading file changethemeform.html
+2017-10-16 02:03:48 Loading file createaccountform.html
+2017-10-16 02:03:48 Loading file failure.html
+2017-10-16 02:03:48 Loading file formatting.html
+2017-10-16 02:03:48 Loading file generic.html
+2017-10-16 02:03:48 Loading file intro.html
+2017-10-16 02:03:48 Loading file loginform.html
+2017-10-16 02:03:48 Loading file modifyform.html
+2017-10-16 02:03:48 Loading file newrootform.html
+2017-10-16 02:03:48 Loading file profilepage.html
+2017-10-16 02:03:48 Loading file recents.html
+2017-10-16 02:03:48 Loading file story.html
+2017-10-16 02:03:48 Updating styles
+2017-10-16 02:03:48 Loading file styles.txt
+2017-10-16 02:03:48 Loading file success.html
+2017-10-16 02:03:48 Loading file useraccount.html
+2017-10-16 02:03:48 Loading file verifyaccount.html
+2017-10-16 02:03:48 Loading file welcome.html
+2017-10-16 02:03:48 Fin
+2017-10-16 02:05:31 Loading file accountconfirmed.html
+2017-10-16 02:05:31 Loading file addform.html
+2017-10-16 02:05:31 Loading file adminform.html
+2017-10-16 02:05:31 Loading file changeauthorform.html
+2017-10-16 02:05:31 Loading file changeemailform.html
+2017-10-16 02:05:31 Loading file changepasswordform.html
+2017-10-16 02:05:31 Loading file changethemeform.html
+2017-10-16 02:05:31 Loading file createaccountform.html
+2017-10-16 02:05:31 Loading file failure.html
+2017-10-16 02:05:31 Loading file formatting.html
+2017-10-16 02:05:31 Loading file generic.html
+2017-10-16 02:05:31 Loading file intro.html
+2017-10-16 02:05:31 Loading file loginform.html
+2017-10-16 02:05:31 Loading file modifyform.html
+2017-10-16 02:05:31 Loading file newrootform.html
+2017-10-16 02:05:31 Loading file profilepage.html
+2017-10-16 02:05:31 Loading file recents.html
+2017-10-16 02:05:31 Loading file story.html
+2017-10-16 02:05:31 Updating styles
+2017-10-16 02:05:31 Loading file styles.txt
+2017-10-16 02:05:31 Loading file success.html
+2017-10-16 02:05:31 Loading file useraccount.html
+2017-10-16 02:05:31 Loading file verifyaccount.html
+2017-10-16 02:05:31 Loading file welcome.html
+2017-10-16 02:05:31 Fin
+2017-10-16 02:11:37 Loading file accountconfirmed.html
+2017-10-16 02:11:37 Loading file addform.html
+2017-10-16 02:11:37 Loading file adminform.html
+2017-10-16 02:11:37 Loading file changeauthorform.html
+2017-10-16 02:11:37 Loading file changeemailform.html
+2017-10-16 02:11:37 Loading file changepasswordform.html
+2017-10-16 02:11:37 Loading file changethemeform.html
+2017-10-16 02:11:37 Loading file createaccountform.html
+2017-10-16 02:11:37 Loading file failure.html
+2017-10-16 02:11:37 Loading file formatting.html
+2017-10-16 02:11:37 Loading file generic.html
+2017-10-16 02:11:37 Loading file intro.html
+2017-10-16 02:11:37 Loading file loginform.html
+2017-10-16 02:11:37 Loading file modifyform.html
+2017-10-16 02:11:37 Loading file newrootform.html
+2017-10-16 02:11:37 Loading file profilepage.html
+2017-10-16 02:11:37 Loading file recents.html
+2017-10-16 02:11:37 Loading file story.html
+2017-10-16 02:11:37 Updating styles
+2017-10-16 02:11:37 Loading file styles.txt
+2017-10-16 02:11:37 Loading file success.html
+2017-10-16 02:11:37 Loading file useraccount.html
+2017-10-16 02:11:37 Loading file verifyaccount.html
+2017-10-16 02:11:37 Loading file welcome.html
+2017-10-16 02:11:37 Fin
+2017-10-16 02:12:39 Loading file accountconfirmed.html
+2017-10-16 02:12:39 Loading file addform.html
+2017-10-16 02:12:39 Loading file adminform.html
+2017-10-16 02:12:39 Loading file changeauthorform.html
+2017-10-16 02:12:39 Loading file changeemailform.html
+2017-10-16 02:12:39 Loading file changepasswordform.html
+2017-10-16 02:12:39 Loading file changethemeform.html
+2017-10-16 02:12:39 Loading file createaccountform.html
+2017-10-16 02:12:39 Loading file failure.html
+2017-10-16 02:12:39 Loading file formatting.html
+2017-10-16 02:12:39 Loading file generic.html
+2017-10-16 02:12:39 Loading file intro.html
+2017-10-16 02:12:39 Loading file loginform.html
+2017-10-16 02:12:39 Loading file modifyform.html
+2017-10-16 02:12:39 Loading file newrootform.html
+2017-10-16 02:12:39 Loading file profilepage.html
+2017-10-16 02:12:39 Loading file recents.html
+2017-10-16 02:12:39 Loading file story.html
+2017-10-16 02:12:39 Updating styles
+2017-10-16 02:12:39 Loading file styles.txt
+2017-10-16 02:12:40 Loading file success.html
+2017-10-16 02:12:40 Loading file useraccount.html
+2017-10-16 02:12:40 Loading file verifyaccount.html
+2017-10-16 02:12:40 Loading file welcome.html
+2017-10-16 02:12:40 Fin
+2017-10-16 02:14:14 Loading file accountconfirmed.html
+2017-10-16 02:14:14 Loading file addform.html
+2017-10-16 02:14:14 Loading file adminform.html
+2017-10-16 02:14:14 Loading file changeauthorform.html
+2017-10-16 02:14:14 Loading file changeemailform.html
+2017-10-16 02:14:14 Loading file changepasswordform.html
+2017-10-16 02:14:14 Loading file changethemeform.html
+2017-10-16 02:14:14 Loading file createaccountform.html
+2017-10-16 02:14:14 Loading file failure.html
+2017-10-16 02:14:14 Loading file formatting.html
+2017-10-16 02:14:14 Loading file generic.html
+2017-10-16 02:14:14 Loading file intro.html
+2017-10-16 02:14:14 Loading file loginform.html
+2017-10-16 02:14:14 Loading file modifyform.html
+2017-10-16 02:14:14 Loading file newrootform.html
+2017-10-16 02:14:14 Loading file profilepage.html
+2017-10-16 02:14:14 Loading file recents.html
+2017-10-16 02:14:14 Loading file story.html
+2017-10-16 02:14:14 Updating styles
+2017-10-16 02:14:14 Loading file styles.txt
+2017-10-16 02:14:14 Loading file success.html
+2017-10-16 02:14:14 Loading file useraccount.html
+2017-10-16 02:14:14 Loading file verifyaccount.html
+2017-10-16 02:14:14 Loading file welcome.html
+2017-10-16 02:14:14 Fin
+2017-10-16 02:14:54 Loading file accountconfirmed.html
+2017-10-16 02:14:54 Loading file addform.html
+2017-10-16 02:14:54 Loading file adminform.html
+2017-10-16 02:14:54 Loading file changeauthorform.html
+2017-10-16 02:14:54 Loading file changeemailform.html
+2017-10-16 02:14:54 Loading file changepasswordform.html
+2017-10-16 02:14:54 Loading file changethemeform.html
+2017-10-16 02:14:54 Loading file createaccountform.html
+2017-10-16 02:14:54 Loading file failure.html
+2017-10-16 02:14:54 Loading file formatting.html
+2017-10-16 02:14:54 Loading file generic.html
+2017-10-16 02:14:54 Loading file intro.html
+2017-10-16 02:14:54 Loading file loginform.html
+2017-10-16 02:14:54 Loading file modifyform.html
+2017-10-16 02:14:54 Loading file newrootform.html
+2017-10-16 02:14:54 Loading file profilepage.html
+2017-10-16 02:14:54 Loading file recents.html
+2017-10-16 02:14:54 Loading file story.html
+2017-10-16 02:14:54 Updating styles
+2017-10-16 02:14:54 Loading file styles.txt
+2017-10-16 02:14:54 Loading file success.html
+2017-10-16 02:14:54 Loading file useraccount.html
+2017-10-16 02:14:54 Loading file verifyaccount.html
+2017-10-16 02:14:54 Loading file welcome.html
+2017-10-16 02:14:54 Fin
+2017-10-16 02:15:33 Loading file accountconfirmed.html
+2017-10-16 02:15:33 Loading file addform.html
+2017-10-16 02:15:33 Loading file adminform.html
+2017-10-16 02:15:33 Loading file changeauthorform.html
+2017-10-16 02:15:33 Loading file changeemailform.html
+2017-10-16 02:15:33 Loading file changepasswordform.html
+2017-10-16 02:15:33 Loading file changethemeform.html
+2017-10-16 02:15:33 Loading file createaccountform.html
+2017-10-16 02:15:33 Loading file failure.html
+2017-10-16 02:15:33 Loading file formatting.html
+2017-10-16 02:15:33 Loading file generic.html
+2017-10-16 02:15:33 Loading file intro.html
+2017-10-16 02:15:33 Loading file loginform.html
+2017-10-16 02:15:33 Loading file modifyform.html
+2017-10-16 02:15:33 Loading file newrootform.html
+2017-10-16 02:15:33 Loading file profilepage.html
+2017-10-16 02:15:33 Loading file recents.html
+2017-10-16 02:15:33 Loading file story.html
+2017-10-16 02:15:33 Updating styles
+2017-10-16 02:15:33 Loading file styles.txt
+2017-10-16 02:15:33 Loading file success.html
+2017-10-16 02:15:33 Loading file useraccount.html
+2017-10-16 02:15:33 Loading file verifyaccount.html
+2017-10-16 02:15:33 Loading file welcome.html
+2017-10-16 02:15:33 Fin

@@ -1,0 +1,20 @@
+Default
+default
+Arctic
+arctic
+Arctic Dark
+arctic_dark
+Desert
+desert
+Dessert
+dessert
+Forest
+forest
+Mint
+mint
+Pumpkin Spice
+pumpkin_spice
+Uggs
+uggs
+WarGames
+wargames

@@ -1,0 +1,51 @@
+<html lang="en">
+<head>
+<title>Fiction Branches</title>
+<link rel="stylesheet" href="/static/css/$STYLE.css">
+<link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="/favicon-120x120.png">
+</head>
+<body>
+
+<div class="topcorner">
+<a href="/"><img alt="Fiction Branches" src="/images/fblogo.png" /></a>
+<br/>
+$ACCOUNT
+</div>
+
+	<h4><b>ANY EPISODES ADDED TO THE TEST SITE <i><u>WILL</i></u> BE DELETED IN THE NEAR FUTURE</b></h4>
+	<h1>Admin stuff</h1><br/><hr/>
+	<form action= "/fb/admin/makemod" method="post">
+		<p>
+			Make moderator (will also revoke adminship): <br/><input type= "text" name= "id" size="33" placeholder=ID></input>
+		</p>
+		<input type= "submit" value= "Submit"/>
+	</form>
+	<hr/>
+	
+	<form action= "/fb/admin/makeadmin" method="post">
+		<p>
+			Make admin (and moderator): <br/><input type= "text" name= "id" size="33" placeholder=ID></input>
+		</p>
+		<input type= "submit" value= "Submit"/>
+	</form>
+	<hr/>
+	
+	<form action= "/fb/admin/makenormal" method="post">
+		<p>
+			Revoke admin/moderator: <br/><input type= "text" name= "id" size="33" placeholder=ID></input>
+		</p>
+		<input type= "submit" value= "Submit"/>
+	</form>
+	<br/><br/>
+
+	<a href="/fb/admin/newroot">Create new story</a>
+
+	<br/><br/>
+	$EXTRA
+
+</body>
+</html>
