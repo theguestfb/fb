@@ -1,8 +1,5 @@
 package fb.api;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -48,7 +45,7 @@ public class AccountStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response logout(@CookieParam("fbtoken") Cookie fbtoken) {
 		Accounts.logout(fbtoken);
-		return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		return Response.seeOther(GetStuff.createURI("/fb")).build();
 	}
 
 	/**
@@ -79,12 +76,11 @@ public class AccountStuff {
 			return Response.ok(e.getMessage()).build();
 		}
 		NewCookie fbtoken = new NewCookie("fbtoken", token);
-		try {
-			URI redirect = new URI("/fb");
-			return Response.temporaryRedirect(redirect).cookie(fbtoken).build();
-		} catch (URISyntaxException e) {
-			return Response.ok("You've successfully logged in, but let Phoenix know that you didn't get redirected properly").cookie(fbtoken).build();
-		}
+		//try {
+			return Response.seeOther(GetStuff.createURI("/fb")).cookie(fbtoken).build();
+		//} catch (URISyntaxException e) {
+		//	return Response.ok("You've successfully logged in, but let Phoenix know that you didn't get redirected properly").cookie(fbtoken).build();
+		//}
 	}
 	
 	/**
@@ -179,7 +175,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build();  //failed, try again
 		}
-		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
+		return Response.seeOther(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
@@ -207,7 +203,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build();  //failed, try again
 		}
-		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
+		return Response.seeOther(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
@@ -235,7 +231,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build(); //failed, try again
 		}
-		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
+		return Response.seeOther(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET

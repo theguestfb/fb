@@ -30,14 +30,14 @@ public class LegacyStuff {
 			return Response.ok("Not found: " + oldId).build();
 		}
 		System.out.println("0Redirecting to" + GetStuff.createURI("/fb"));
-		return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + newId)).build();
+		return Response.seeOther(GetStuff.createURI("/fb/get/" + newId)).build();
 	}
 	
 	@GET
 	@Path("legacy/the-forum/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy1(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/1")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb/get/1")).build();
 		return legacy(oldId);
 	}
 	
@@ -45,7 +45,7 @@ public class LegacyStuff {
 	@Path("legacy/you-are-what-you-wish/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy2(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/2")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb/get/2")).build();
 		return legacy(oldId);
 	}
 	
@@ -53,7 +53,7 @@ public class LegacyStuff {
 	@Path("legacy/altered-fates/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy3(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/3")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb/get/3")).build();
 		return legacy(oldId);
 	}
 	
@@ -61,7 +61,7 @@ public class LegacyStuff {
 	@Path("legacy/the-future-of-gaming/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy4(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/4")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb/get/4")).build();
 		return legacy(oldId);
 	}
 	
@@ -77,7 +77,7 @@ public class LegacyStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything) {
 		System.out.println("1Redirecting to" + GetStuff.createURI("/fb"));
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb")).build();
 		return legacy(oldId);
 	}
 	
@@ -86,7 +86,7 @@ public class LegacyStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything, @PathParam("anything2") String anything2) {
 		System.out.println("2Redirecting to" + GetStuff.createURI("/fb"));
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb")).build();
 		return legacy(oldId);
 	}
 	
@@ -95,7 +95,7 @@ public class LegacyStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything, @PathParam("anything3") String anything3, @PathParam("anything2") String anything2) {
 		System.out.println("3Redirecting to" + GetStuff.createURI("/fb"));
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.seeOther(GetStuff.createURI("/fb")).build();
 		return legacy(oldId);
 	}
 	

@@ -80,7 +80,7 @@ public class AdminStuff {
 		}
 		try {
 			String childID = Story.newRootPost(link, title, body, fbtoken);
-			return Response.temporaryRedirect(URI.create("/fb/get/" + childID)).build();
+			return Response.seeOther(URI.create("/fb/get/" + childID)).build();
 		} catch (EpisodeException e) {
 			return Response.ok(e.getMessage()).build();
 		}

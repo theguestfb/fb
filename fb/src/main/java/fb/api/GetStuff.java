@@ -48,7 +48,7 @@ public class GetStuff {
 	@Path("get")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getGet() {
-		return Response.temporaryRedirect(createURI("/fb")).build();
+		return Response.seeOther(createURI("/fb")).build();
 	}
 
 	/**

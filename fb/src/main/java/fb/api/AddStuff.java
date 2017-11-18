@@ -74,7 +74,7 @@ public class AddStuff {
 		}
 		try {
 			String childID = Story.addPost(id, link, title, body, fbtoken);
-			return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + childID)).build();
+			return Response.seeOther(GetStuff.createURI("/fb/get/" + childID)).build();
 		} catch (EpisodeException e) {
 			return Response.ok(e.getMessage()).build();
 		}
@@ -109,7 +109,7 @@ public class AddStuff {
 		}
 		try {
 			String modifiedID = Story.modifyPost(id, link, title, body, fbtoken);
-			return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + modifiedID)).build();
+			return Response.seeOther(GetStuff.createURI("/fb/get/" + modifiedID)).build();
 		} catch (EpisodeException e) {
 			return Response.ok(e.getMessage()).build();
 		}
