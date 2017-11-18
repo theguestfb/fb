@@ -33,7 +33,7 @@ Configure Eclipse with Gradle and Eclipse WTP, add a Tomcat server, and run the 
 
 4. File > Import > Git > Projects from Git > Next
     - Clone URI > Next
-    - Set URI: to
+    - Set URI: to https://github.com/fictionbranches/fb
     - Next > Next
     - Change destination directory if desired > Next > Next > Finish
 
