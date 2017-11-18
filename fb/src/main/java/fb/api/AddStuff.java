@@ -1,7 +1,5 @@
 package fb.api;
 
-import java.net.URI;
-
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -14,8 +12,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import fb.Story;
-import fb.Strings;
 import fb.Story.EpisodeException;
+import fb.Strings;
 
 @Path("")
 public class AddStuff {
@@ -76,7 +74,7 @@ public class AddStuff {
 		}
 		try {
 			String childID = Story.addPost(id, link, title, body, fbtoken);
-			return Response.temporaryRedirect(URI.create("/fb/get/" + childID)).build();
+			return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + childID)).build();
 		} catch (EpisodeException e) {
 			return Response.ok(e.getMessage()).build();
 		}
@@ -111,7 +109,7 @@ public class AddStuff {
 		}
 		try {
 			String modifiedID = Story.modifyPost(id, link, title, body, fbtoken);
-			return Response.temporaryRedirect(URI.create("/fb/get/" + modifiedID)).build();
+			return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + modifiedID)).build();
 		} catch (EpisodeException e) {
 			return Response.ok(e.getMessage()).build();
 		}

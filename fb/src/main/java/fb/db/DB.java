@@ -19,33 +19,29 @@ public class DB {
 	
 	public static final String ROOT_ID = "fbadministrator1";
 	
-	private static SessionFactory sessionFactory = null;
-	private static Session session;
+	private static final SessionFactory sessionFactory;
+	static final Session session;
 	private static Object dbLock = new Object();
 	static {
 		synchronized (dbLock) {
-			if (sessionFactory == null) {
-				Configuration configuration = new Configuration().configure();
-				configuration.addAnnotatedClass(DBEpisode.class);
-				configuration.addAnnotatedClass(DBRecents.class);
-				configuration.addAnnotatedClass(DBLegacyId.class);
-				configuration.addAnnotatedClass(DBUser.class);
-				configuration.addAnnotatedClass(DBEmail.class);
-				configuration.addAnnotatedClass(DBRootEpisodes.class);
+			Configuration configuration = new Configuration().configure();
+			
+			configuration.addAnnotatedClass(DBEpisode.class);
+			configuration.addAnnotatedClass(DBRecents.class);
+			configuration.addAnnotatedClass(DBLegacyId.class);
+			configuration.addAnnotatedClass(DBUser.class);
+			configuration.addAnnotatedClass(DBEmail.class);
+			configuration.addAnnotatedClass(DBRootEpisodes.class);
 
-				StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
-						.applySettings(configuration.getProperties());
-				sessionFactory = configuration.buildSessionFactory(builder.build());
-			}
-			if (session == null) session = sessionFactory.openSession();
+			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
+			sessionFactory = configuration.buildSessionFactory(builder.build());
+			session = sessionFactory.openSession();
 		}
 	}
-
-	static SessionFactory getSessionFactory() {
-		return sessionFactory;
-	}
-	static Session getSession() {
-		return session;
+	
+	static void closeSession() {
+		session.close();
+		sessionFactory.close();
 	}
 	
 	public static class DBException extends Exception {
@@ -285,14 +281,14 @@ public class DB {
 		
 			String id = newUserId();
 			// Make sure id doesn't already exist
-			while (getSession().get(DBUser.class, id) != null) id = newUserId();
+			while (session.get(DBUser.class, id) != null) id = newUserId();
 			
 			user.setId(id);
 			
-			getSession().beginTransaction();
-			getSession().save(user);
-			getSession().save(dbemail);
-			getSession().getTransaction().commit();
+			session.beginTransaction();
+			session.save(user);
+			session.save(dbemail);
+			session.getTransaction().commit();
 			
 			return id;
 		}
@@ -306,12 +302,12 @@ public class DB {
 	 */
 	public static void changeAuthorName(String id, String newAuthor) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getSession().get(DBUser.class, id);
+			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setAuthor(newAuthor);
-			getSession().beginTransaction();
-			getSession().merge(user);
-			getSession().getTransaction().commit();
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
 		}
 	}
 	
@@ -323,12 +319,12 @@ public class DB {
 	 */
 	public static void changeTheme(String id, String newTheme) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getSession().get(DBUser.class, id);
+			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setTheme(newTheme);
-			getSession().beginTransaction();
-			getSession().merge(user);
-			getSession().getTransaction().commit();
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
 		}
 	}
 	
@@ -341,12 +337,12 @@ public class DB {
 	 */
 	public static void changePassword(String id, String newPassword) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getSession().get(DBUser.class, id);
+			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setPassword(newPassword);
-			getSession().beginTransaction();
-			getSession().merge(user);
-			getSession().getTransaction().commit();
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
 		}
 	}
 	
@@ -358,12 +354,12 @@ public class DB {
 	 */
 	public static void changeUserLevel(String id, byte newLevel) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getSession().get(DBUser.class, id);
+			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setLevel(newLevel);
-			getSession().beginTransaction();
-			getSession().merge(user);
-			getSession().getTransaction().commit();
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
 		}
 	}
 
@@ -374,7 +370,7 @@ public class DB {
 	 */
 	public static User getUser(String id) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getSession().get(DBUser.class, id);
+			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			return new User(user);
 		}
@@ -388,7 +384,7 @@ public class DB {
 	 */
 	public static User getUserByEmail(String email) throws DBException {
 		synchronized(dbLock) {
-			DBEmail dbemail = getSession().get(DBEmail.class, email);
+			DBEmail dbemail = session.get(DBEmail.class, email);
 			if (dbemail == null) throw new DBException("Email " + email + " does not exist");
 			return new User(dbemail.getUser());
 		}
@@ -396,7 +392,7 @@ public class DB {
 	
 	public static boolean emailInUse(String email) {
 		synchronized(dbLock) {
-			return getSession().get(DBEmail.class, email) != null;
+			return session.get(DBEmail.class, email) != null;
 		}
 	}
 	

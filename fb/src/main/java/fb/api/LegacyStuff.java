@@ -1,7 +1,5 @@
 package fb.api;
 
-import java.net.URI;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -31,22 +29,23 @@ public class LegacyStuff {
 		} catch (DBException e) {
 			return Response.ok("Not found: " + oldId).build();
 		}
-		return Response.temporaryRedirect(URI.create("/fb/get/" + newId)).build();
+		System.out.println("0Redirecting to" + GetStuff.createURI("/fb"));
+		return Response.temporaryRedirect(GetStuff.createURI("/fb/get/" + newId)).build();
 	}
 	
 	@GET
 	@Path("legacy/the-forum/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy1(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(URI.create("/fb/get/1")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/1")).build();
 		return legacy(oldId);
 	}
 	
-	@GET
+	@GET 
 	@Path("legacy/you-are-what-you-wish/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy2(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(URI.create("/fb/get/2")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/2")).build();
 		return legacy(oldId);
 	}
 	
@@ -54,7 +53,7 @@ public class LegacyStuff {
 	@Path("legacy/altered-fates/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy3(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(URI.create("/fb/get/3")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/3")).build();
 		return legacy(oldId);
 	}
 	
@@ -62,7 +61,7 @@ public class LegacyStuff {
 	@Path("legacy/the-future-of-gaming/{oldId}")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy4(@PathParam("oldId") String oldId) {
-		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(URI.create("/fb/get/4")).build();
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb/get/4")).build();
 		return legacy(oldId);
 	}
 	
@@ -70,6 +69,33 @@ public class LegacyStuff {
 	@Path("legacy/cgi-bin/fbstorypage.pl")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response legacy5(@QueryParam("page") String oldId) {
+		return legacy(oldId);
+	}
+	
+	@GET
+	@Path("legacy/{anything}/{oldId}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything) {
+		System.out.println("1Redirecting to" + GetStuff.createURI("/fb"));
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		return legacy(oldId);
+	}
+	
+	@GET
+	@Path("legacy/{anything}/{anything2}/{oldId}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything, @PathParam("anything2") String anything2) {
+		System.out.println("2Redirecting to" + GetStuff.createURI("/fb"));
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
+		return legacy(oldId);
+	}
+	
+	@GET
+	@Path("legacy/{anything}/{anything2}/{anything3}/{oldId}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response legacyCatchAll(@PathParam("oldId") String oldId, @PathParam("anything") String anything, @PathParam("anything3") String anything3, @PathParam("anything2") String anything2) {
+		System.out.println("3Redirecting to" + GetStuff.createURI("/fb"));
+		if (oldId.trim().toLowerCase().compareTo("root") == 0) return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
 		return legacy(oldId);
 	}
 	

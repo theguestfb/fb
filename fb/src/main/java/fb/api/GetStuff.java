@@ -1,6 +1,7 @@
 package fb.api;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
@@ -20,6 +21,14 @@ import fb.objects.Episode;
 @Path("")
 public class GetStuff {
 	
+	public static URI createURI(String url) {
+		try {
+			return new URI("https", Strings.DOMAIN, url, null);
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
 	/**
 	 * Displays welcome page (not intro page, which is statically served by nginx)
 	 * 
@@ -28,7 +37,6 @@ public class GetStuff {
 	@GET
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getRoot(@CookieParam("fbtoken") Cookie fbtoken) {
-		//String welcome = Strings.getFile("welcome.html", fbtoken);
 		return Response.ok(Story.getWelcome(fbtoken)).build();
 	}
 
@@ -40,7 +48,7 @@ public class GetStuff {
 	@Path("get")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getGet() {
-		return Response.temporaryRedirect(URI.create("/fb")).build();
+		return Response.temporaryRedirect(createURI("/fb")).build();
 	}
 
 	/**

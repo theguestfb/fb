@@ -48,7 +48,7 @@ public class AccountStuff {
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response logout(@CookieParam("fbtoken") Cookie fbtoken) {
 		Accounts.logout(fbtoken);
-		return Response.temporaryRedirect(URI.create("/fb")).build();
+		return Response.temporaryRedirect(GetStuff.createURI("/fb")).build();
 	}
 
 	/**
@@ -179,7 +179,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build();  //failed, try again
 		}
-		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
@@ -207,7 +207,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build();  //failed, try again
 		}
-		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
@@ -235,7 +235,7 @@ public class AccountStuff {
 		} catch (FBLoginException e) {
 			return Response.ok(e.getMessage()).build(); //failed, try again
 		}
-		return Response.temporaryRedirect(URI.create("/fb/useraccount")).build(); //redirect on success
+		return Response.temporaryRedirect(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
 	}
 	
 	@GET
