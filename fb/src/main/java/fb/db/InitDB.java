@@ -32,10 +32,11 @@ public class InitDB {
 	
 	
 	public static void main(String[] args) throws Exception {
-		
+		//doImport();
+		scanDB();
 	}
 	
-	public static void scanWeird() throws Exception {
+	public static void scanDB() throws Exception {
 		try (BufferedWriter out = new BufferedWriter(new FileWriter(System.getProperty("user.home") + "/Desktop/log.txt"))) {
 
 			/***** Count episodes in DB ******/
@@ -164,7 +165,7 @@ public class InitDB {
 		DBEpisode ep = DB.session.get(DBEpisode.class, id);
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
-		{
+		/*{
 			StringBuilder sb = new StringBuilder();
 			if (ep.getBody().contains("â€")) sb.append("â€ ");
 			if (sb.length() > 0) {
@@ -172,10 +173,22 @@ public class InitDB {
 				out.newLine();
 				System.out.println(sb + ep.getId());
 			}
+		}*/
+		DB.session.beginTransaction();
+		ep.setDepth(keyToArr(ep.getId()).length);
+		DB.session.getTransaction().commit();
+		++tCount;
+		++lCount;
+		if (lCount == 2000) {
+			System.out.println(tCount + " " + ep.getId());
+			lCount = 0;
 		}
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId(), out);
 		return sum;
 	}
+	
+	private static int tCount = 0;
+	private static int lCount = 0;
 	
 	private static void readStory(String story, String rootId) {
 		Strings.log("Importing " + story);
@@ -196,6 +209,7 @@ public class InitDB {
 		DBEpisode rootEp = rootCont.ep;
 		rootEp.setParent(null);
 		rootEp.setId(rootId);
+		rootEp.setDepth(keyToArr(rootId).length);
 		newUser.getEpisodes().add(rootEp);
 		rootEp.setAuthor(newUser);
 		newUser.setAuthor(rootCont.author);
@@ -322,6 +336,8 @@ public class InitDB {
 				child.setId(childId);
 				child.setParent(parent);
 				
+				child.setDepth(keyToArr(child.getId()).length);
+				
 				parent.getChildren().add(child);
 				DB.session.save(user);
 				DB.session.save(child);
@@ -334,6 +350,7 @@ public class InitDB {
 				String parentId = getParentId(childId);
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
+								
 				DBEpisode parent = DB.session.get(DBEpisode.class, parentId);
 				
 				DBUser user = new DBUser();
@@ -348,6 +365,7 @@ public class InitDB {
 				user.setPassword("disabled");
 								
 				child.setId(childId);
+				child.setDepth(keyToArr(childId).length);
 				child.setParent(parent);
 				child.setAuthor(user);
 				user.getEpisodes().add(child);
@@ -383,27 +401,27 @@ public class InitDB {
 		}
 	}
 	
-	private static int[] keyToArr(String s) {
+	public static int[] keyToArr(String s) {
 		String[] arr = s.split("-");
 		int[] ret = new int[arr.length];
 		for (int i=0; i<arr.length; ++i) ret[i] = Integer.parseInt(arr[i]);
 		return ret;
 	}
 	
-	private static String arrToKey(int[] arr) {
+	public static String arrToKey(int[] arr) {
 		StringBuilder sb = new StringBuilder();
 		for (int x : arr) sb.append(x + "-");
 		return sb.substring(0, sb.length()-1);
 	}
 	
-	private static String getParentId(String s) {
+	public static String getParentId(String s) {
 		String[] arr = s.split("-");
 		StringBuilder ret = new StringBuilder();
 		for (int i=0; i<arr.length-1; ++i) ret.append(arr[i] + "-");
 		return ret.substring(0, ret.length()-1);
 	}
 	
-	private static String getOlderSiblingId(String s) {
+	public static String getOlderSiblingId(String s) {
 		int[] arr = keyToArr(s);
 		arr[arr.length-1]--;
 		return (arr[arr.length-1] >= 1)?(arrToKey(arr)):(null);

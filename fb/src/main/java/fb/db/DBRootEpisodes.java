@@ -1,5 +1,6 @@
 package fb.db;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +11,10 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="rootepisodes")
-public class DBRootEpisodes {
+public class DBRootEpisodes implements Serializable {
+	/****/
+	private static final long serialVersionUID = 826937549665985189L;
+
 	public DBRootEpisodes() {}
 	
 	@Id

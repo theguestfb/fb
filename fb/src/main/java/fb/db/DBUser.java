@@ -1,5 +1,6 @@
 package fb.db;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,8 +12,11 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="fbuserdb")
-public class DBUser {
+public class DBUser implements Serializable {
 	
+	/****/
+	private static final long serialVersionUID = -3123455003291956376L;
+
 	public DBUser() {}
 	
 	@OneToOne

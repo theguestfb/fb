@@ -15,7 +15,6 @@ import javax.mail.internet.MimeMessage;
 import javax.ws.rs.core.Cookie;
 
 import org.apache.commons.validator.routines.EmailValidator;
-//import org.mindrot.jbcrypt.BCrypt;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.common.html.HtmlEscapers;

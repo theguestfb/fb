@@ -14,6 +14,7 @@ public class Episode {
 	public final boolean isLegacy;
 	public final String body;
 	public final Date date;
+	public final int depth;
 	public final ArrayList<ChildEpisode> children;
 	public final String parentId;
 	public Episode(DBEpisode ep) {
@@ -25,11 +26,12 @@ public class Episode {
 		this.body = ep.getBody();
 		this.date = ep.getDate();
 		this.isLegacy = ep.getAuthor().getEmail() == null;
+		this.depth = ep.getDepth();
 		this.children = new ArrayList<>();
 		for (DBEpisode child : ep.getChildren()) children.add(new ChildEpisode(child));
 		this.parentId = (ep.getParent() == null) ? null : ep.getParent().getId();
 	}
-	public Episode(String id, String link, String authorName, Date date) {
+	public Episode(String id, String link, String authorName, Date date, int depth) {
 		this.id = id;
 		this.title = "";
 		this.link = link;
@@ -40,6 +42,7 @@ public class Episode {
 		this.date = date;
 		this.children = new ArrayList<>();
 		this.parentId = "";
+		this.depth = depth;
 	}
 	public static class ChildEpisode {
 		public final String id;

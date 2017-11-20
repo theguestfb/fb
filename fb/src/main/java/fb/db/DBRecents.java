@@ -1,5 +1,6 @@
 package fb.db;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +11,10 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="recentepisodes")
-public class DBRecents {
+public class DBRecents implements Serializable {
+	/****/
+	private static final long serialVersionUID = 978481604232670804L;
+
 	public DBRecents() {}
 	
 	@Id

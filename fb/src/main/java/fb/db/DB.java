@@ -107,6 +107,7 @@ public class DB {
 				throw new DBException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
 			}
 			child.setId(childId);
+			child.setDepth(InitDB.keyToArr(childId).length);
 			
 			child.setTitle(title);
 			child.setLink(link);
@@ -167,6 +168,7 @@ public class DB {
 				throw new DBException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
 			}
 			child.setId(childId);
+			child.setDepth(InitDB.keyToArr(childId).length);
 			
 			child.setTitle(title);
 			child.setLink(link);
@@ -275,20 +277,52 @@ public class DB {
 			try {
 
 				ResultSet rs = con.prepareStatement(
-						"SELECT storyfb.id, storyfb.link, storyfb.date, storyfb.author_id, fbuserdb.author "
+						"SELECT storyfb.id, storyfb.link, storyfb.date, storyfb.depth, storyfb.author_id, fbuserdb.author "
 						+ "FROM storyfb,fbuserdb "
 						+ "WHERE storyfb.author_id = fbuserdb.id AND storyfb.date > '" + Strings.sqlDateFormat(d) + "' "
 								+ "ORDER BY storyfb.date DESC").executeQuery();
+				
 				
 				
 				while(rs.next()) {
 					String id = rs.getString("storyfb.id");
 					String link = rs.getString("storyfb.link");
 					String author = rs.getString("fbuserdb.author");
+					int depth = rs.getInt("storyfb.depth");
 					//Date date = rs.getDate("storyfb.date");
 					Date date = new Date(rs.getTimestamp("storyfb.date").getTime());
 					System.out.println("New " + link + " - " + Strings.sqlDateFormat(date));
-					list.add(new Episode(id, link, author, date));
+					list.add(new Episode(id, link, author, date, depth));
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+				throw new DBException(e);
+			}
+			return new EpisodeList(list);
+		}
+	}
+	
+	public static EpisodeList getOutline(String rootId, int maxDepth) throws DBException {
+		synchronized(dbLock) {
+			ArrayList<Episode> list = new ArrayList<>();
+			
+			int minDepth = DB.getEp(rootId).depth;
+			maxDepth += minDepth;
+
+			try {
+
+				ResultSet rs = con.prepareStatement(
+						"SELECT id, link, depth "
+						+ "FROM storyfb "
+						+ "WHERE id LIKE '" + rootId + "%' AND depth < " + maxDepth).executeQuery();
+				
+				
+				
+				while(rs.next()) {
+					String id = rs.getString("storyfb.id");
+					String link = rs.getString("storyfb.link");
+					int depth = rs.getInt("storyfb.depth");
+					list.add(new Episode(id, link, "", new Date(), depth));
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();

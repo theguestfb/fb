@@ -185,6 +185,13 @@ public class GetStuff {
 	}
 	
 	@GET
+	@Path("outline/{id}")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response outline(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id, @QueryParam("depth") String depth) {
+		return Response.ok(Story.getOutline(fbtoken, id, depth)).build();
+	}
+	
+	@GET
 	@Path("formatting")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response formatting(@CookieParam("fbtoken") Cookie fbtoken) {

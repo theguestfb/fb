@@ -1,15 +1,21 @@
 package fb.db;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
+
 @Entity
 @Table(name="fbemaildb")
-public class DBEmail {
+public class DBEmail implements Serializable {
 	
+	/****/
+	private static final long serialVersionUID = 2380721117543200537L;
+
 	public DBEmail() {}
 	
 	@Id

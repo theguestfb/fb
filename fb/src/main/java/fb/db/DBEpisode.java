@@ -1,5 +1,6 @@
 package fb.db;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -15,8 +16,15 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="storyfb")
-public class DBEpisode {
+public class DBEpisode implements Serializable {
 	
+	/*****/
+	private static final long serialVersionUID = 1653241208781785580L;
+
+	/*@Id
+	@GeneratedValue
+	private int generatedId;*/
+
 	@Id
 	@Column( length = 4096 )
 	private String id;
@@ -24,6 +32,8 @@ public class DBEpisode {
 	private String title;
 	
 	private String link;
+	
+	private int depth;
 	
 	@ManyToOne
 	private DBUser author;
@@ -41,6 +51,15 @@ public class DBEpisode {
 	
 	// The following constructor, getters, and setters are required for JPA persistence
 	public DBEpisode() {} 
+	
+	/*public int getGeneratedId() {
+		return generatedId;
+	}
+	
+	public void setGeneratedId(int generatedId) {
+		this.generatedId = generatedId;
+	}*/
+	
 	public String getId() {
 		return id;
 	}
@@ -59,6 +78,14 @@ public class DBEpisode {
 	public void setLink(String link) {
 		this.link = link;
 	}
+	public int getDepth() {
+		return depth;
+	}
+
+	public void setDepth(int depth) {
+		this.depth = depth;
+	}
+
 	public String getBody() {
 		return body;
 	}
@@ -96,5 +123,15 @@ public class DBEpisode {
 		sb.append(" [" + ((parent==null)?"root":parent.getTitle()) + "]");
 		for (DBEpisode child : children) sb.append(" [" + child.getTitle() + "]");
 		return sb.toString();
+	}
+	
+	public boolean equals(Object o) {
+		if (!(o instanceof DBEpisode)) return false;
+		DBEpisode that = (DBEpisode)o;
+		return this.id.equals(that.id);
+	}
+	
+	public int hashCode() {
+		return id.hashCode();
 	}
 }

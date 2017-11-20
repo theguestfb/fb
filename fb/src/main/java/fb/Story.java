@@ -143,7 +143,7 @@ public class Story {
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>");
+			sb.append("<p><a href=get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 		
@@ -171,10 +171,37 @@ public class Story {
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>");
+			sb.append("<p><a href=get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
+	}
+	
+	public static String getOutline(Cookie token, String rootId, String depthString) {
 		
+		int depth;
+		try {
+			depth = Integer.parseInt(depthString);
+		} catch (NumberFormatException e) {
+			depth = 50;
+		}
+		if (depth > 100) depth = 50;
+		EpisodeList outline;
+		try {
+			if (DB.getEp(rootId) == null) return Strings.getFile("generic.html", token).replace("$EXTRA", "ID not found: " + rootId);
+			outline = DB.getOutline(rootId, depth);
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
+		}
+		ArrayList<Episode> list = outline.episodes;
+		Collections.sort(list, Comparators.episodeKeyComparator);
+		int minDepth = list.get(0).depth;
+		StringBuilder sb = new StringBuilder();
+		for (Episode child : list) if (child != null){
+			//sb.append("<p>");
+			for (int i=minDepth; i<child.depth; ++i) sb.append("&nbsp;");
+			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a><br />\n");
+		}
+		return Strings.getFile("outline.html", token).replace("$ID", rootId).replace("$CHILDREN", sb.toString());
 	}
 	
 	/**

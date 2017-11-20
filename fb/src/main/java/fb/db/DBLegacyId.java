@@ -1,5 +1,7 @@
 package fb.db;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -7,7 +9,10 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="legacyids")
-public class DBLegacyId {
+public class DBLegacyId implements Serializable {
+	/****/
+	private static final long serialVersionUID = -3235868657047981276L;
+
 	public DBLegacyId() {}
 	
 	@Id

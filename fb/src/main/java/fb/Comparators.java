@@ -2,6 +2,7 @@ package fb;
 
 import java.util.Comparator;
 
+import fb.objects.Episode;
 import fb.objects.Episode.ChildEpisode;
 
 public class Comparators {
@@ -67,6 +68,13 @@ public class Comparators {
 	public static Comparator<ChildEpisode> keyComparator = new Comparator<ChildEpisode>() {
 		@Override
 		public int compare(ChildEpisode A, ChildEpisode B) {
+			return keyStringComparator.compare(A.id, B.id);
+		}
+	};
+	
+	public static Comparator<Episode> episodeKeyComparator = new Comparator<Episode>() {
+		@Override
+		public int compare(Episode A, Episode B) {
 			return keyStringComparator.compare(A.id, B.id);
 		}
 	};
