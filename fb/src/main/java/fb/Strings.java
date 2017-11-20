@@ -181,6 +181,16 @@ public class Strings {
 		String ret;
 		synchronized(outputDate) {
 			ret = outputDate.format(date);
+			System.out.println("Date: " + ret);
+		}
+		return ret;
+	}
+	
+	private static final DateFormat sqlDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	public static String sqlDateFormat(Date date) {
+		String ret;
+		synchronized(sqlDate) {
+			ret = sqlDate.format(date);
 		}
 		return ret;
 	}

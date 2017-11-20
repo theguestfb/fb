@@ -1,9 +1,14 @@
 package fb.db;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
 
+import org.h2.jdbcx.JdbcConnectionPool;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -21,9 +26,11 @@ public class DB {
 	
 	private static final SessionFactory sessionFactory;
 	static final Session session;
+	private static final Connection con;
 	private static Object dbLock = new Object();
 	static {
 		synchronized (dbLock) {
+			
 			Configuration configuration = new Configuration().configure();
 			
 			configuration.addAnnotatedClass(DBEpisode.class);
@@ -36,12 +43,23 @@ public class DB {
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
 			session = sessionFactory.openSession();
+			JdbcConnectionPool cp = JdbcConnectionPool.create("jdbc:h2:/opt/fb/storydb", "", "");
+			try {
+				con = cp.getConnection();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 	
 	static void closeSession() {
 		session.close();
 		sessionFactory.close();
+		try {
+			con.close();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public static class DBException extends Exception {
@@ -50,6 +68,10 @@ public class DB {
 
 		public DBException(String message) {
 			super(message);
+		}
+
+		public DBException(Exception e) {
+			super(e);
 		}
 	}
 	
@@ -234,11 +256,45 @@ public class DB {
 	 * @return
 	 * @throws DBException wtf
 	 */
-	public static EpisodeList getRecents() throws DBException {
+	public static EpisodeList getRecentsOld() throws DBException {
 		synchronized(dbLock) {
 			DBRecents recents = session.get(DBRecents.class, 1);
 			if (recents == null) throw new DBException("Recents not found (tell Phoenix if you see this, it should never happen)");
 			return new EpisodeList(recents);
+		}
+	}
+	
+	public static EpisodeList getRecents(int days) throws DBException {
+		synchronized(dbLock) {
+			ArrayList<Episode> list = new ArrayList<>();
+			
+			Calendar cal = Calendar.getInstance();
+			cal.add(Calendar.DAY_OF_MONTH, -days);
+			Date d = cal.getTime();
+
+			try {
+
+				ResultSet rs = con.prepareStatement(
+						"SELECT storyfb.id, storyfb.link, storyfb.date, storyfb.author_id, fbuserdb.author "
+						+ "FROM storyfb,fbuserdb "
+						+ "WHERE storyfb.author_id = fbuserdb.id AND storyfb.date > '" + Strings.sqlDateFormat(d) + "' "
+								+ "ORDER BY storyfb.date DESC").executeQuery();
+				
+				
+				while(rs.next()) {
+					String id = rs.getString("storyfb.id");
+					String link = rs.getString("storyfb.link");
+					String author = rs.getString("fbuserdb.author");
+					//Date date = rs.getDate("storyfb.date");
+					Date date = new Date(rs.getTimestamp("storyfb.date").getTime());
+					System.out.println("New " + link + " - " + Strings.sqlDateFormat(date));
+					list.add(new Episode(id, link, author, date));
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+				throw new DBException(e);
+			}
+			return new EpisodeList(list);
 		}
 	}
 	

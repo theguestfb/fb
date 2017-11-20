@@ -8,6 +8,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -170,10 +171,17 @@ public class GetStuff {
 	 * @return HTML episode
 	 */
 	@GET
+	@Path("recentold")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response recentold(@CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Story.getRecentsOld(fbtoken)).build();
+	}
+	
+	@GET
 	@Path("recent")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response recent(@CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getRecents(fbtoken)).build();
+	public Response recent(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("days") String days) {
+		return Response.ok(Story.getRecents(fbtoken, days)).build();
 	}
 	
 	@GET

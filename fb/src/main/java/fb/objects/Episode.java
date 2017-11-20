@@ -29,6 +29,18 @@ public class Episode {
 		for (DBEpisode child : ep.getChildren()) children.add(new ChildEpisode(child));
 		this.parentId = (ep.getParent() == null) ? null : ep.getParent().getId();
 	}
+	public Episode(String id, String link, String authorName, Date date) {
+		this.id = id;
+		this.title = "";
+		this.link = link;
+		this.authorId = "";
+		this.authorName = authorName;
+		this.isLegacy = true;
+		this.body = "";
+		this.date = date;
+		this.children = new ArrayList<>();
+		this.parentId = "";
+	}
 	public static class ChildEpisode {
 		public final String id;
 		public final String link;

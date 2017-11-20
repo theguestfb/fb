@@ -65,7 +65,7 @@ public class RssStuff {
 
 		EpisodeList eps;
 		try {
-			eps = DB.getRecents();
+			eps = DB.getRecents(25);
 		} catch (DBException e) {
 			Strings.log("Couldn't get recents for RSS");
 			return feed;

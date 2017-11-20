@@ -18,4 +18,8 @@ public class EpisodeList {
 		this.episodes = new ArrayList<>();
 		for (DBEpisode ep : roots.getRoots()) this.episodes.add(new Episode(ep));
 	}
+	
+	public EpisodeList(ArrayList<Episode> list) {
+		this.episodes = new ArrayList<>(list);
+	}
 }

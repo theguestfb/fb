@@ -127,10 +127,38 @@ public class Story {
 	 * 
 	 * @return HTML recents
 	 */
-	public static String getRecents(Cookie token) {
+	public static String getRecentsOld(Cookie token) {
 		EpisodeList recents;
 		try {
-			recents = DB.getRecents();
+			recents = DB.getRecentsOld();
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
+		}
+				
+		StringBuilder sb = new StringBuilder();
+		for (Episode child : recents.episodes) if (child != null){
+			String story;
+			try {
+				story = "(" + DB.getEp(child.id.split("-")[0]).link + ")";
+			} catch (DBException e) {
+				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
+			}
+			sb.append("<p><a href=get/" + child.id + ">" + child.link + "</a>" + " by " + child.authorName + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>");
+		}
+		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
+		
+	}
+	
+	public static String getRecents(Cookie token, String daysString) {
+		int days;
+		try {
+			days = Integer.parseInt(daysString);
+		} catch (NumberFormatException e) {
+			days = 25;
+		}
+		EpisodeList recents;
+		try {
+			recents = DB.getRecents(days);
 		} catch (DBException e) {
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
 		}

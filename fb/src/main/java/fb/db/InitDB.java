@@ -17,6 +17,8 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import fb.Comparators;
 import fb.Strings;
 
@@ -31,6 +33,9 @@ public class InitDB {
 	
 	public static void main(String[] args) throws Exception {
 		
+	}
+	
+	public static void scanWeird() throws Exception {
 		try (BufferedWriter out = new BufferedWriter(new FileWriter(System.getProperty("user.home") + "/Desktop/log.txt"))) {
 
 			/***** Count episodes in DB ******/
@@ -58,9 +63,11 @@ public class InitDB {
 
 			out.flush();
 		}
+	}
+	
+	public static void doImport() throws Exception {
 		
-		
-		/*try (Scanner in = new Scanner(System.in)) {
+		try (Scanner in = new Scanner(System.in)) {
 			
 			System.out.println("enter root password:");
 			String rootpw = in.nextLine();
@@ -141,7 +148,7 @@ public class InitDB {
 		DB.session.getTransaction().commit();
 		Strings.log("Added roots");
 		}
-		*/
+		
 		DB.closeSession();
 		Strings.log("Fin");
 		System.exit(0);
