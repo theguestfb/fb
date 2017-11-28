@@ -1,6 +1,7 @@
 package fb.db;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -8,7 +9,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
 
-import org.h2.jdbcx.JdbcConnectionPool;
+//import org.h2.jdbcx.JdbcConnectionPool;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -43,9 +44,10 @@ public class DB {
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
 			session = sessionFactory.openSession();
-			JdbcConnectionPool cp = JdbcConnectionPool.create("jdbc:h2:/opt/fb/storydb", "", "");
+			//JdbcConnectionPool cp = JdbcConnectionPool.create("jdbc:h2:/opt/fb/storydb", "", "");
 			try {
-				con = cp.getConnection();
+				//con = cp.getConnection();
+				con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/fictionbranches", "fictionbranches", "");
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
@@ -57,6 +59,7 @@ public class DB {
 		sessionFactory.close();
 		try {
 			con.close();
+			
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -285,12 +288,12 @@ public class DB {
 				
 				
 				while(rs.next()) {
-					String id = rs.getString("storyfb.id");
-					String link = rs.getString("storyfb.link");
-					String author = rs.getString("fbuserdb.author");
-					int depth = rs.getInt("storyfb.depth");
+					String id = rs.getString("id");
+					String link = rs.getString("link");
+					String author = rs.getString("author");
+					int depth = rs.getInt("depth");
 					//Date date = rs.getDate("storyfb.date");
-					Date date = new Date(rs.getTimestamp("storyfb.date").getTime());
+					Date date = new Date(rs.getTimestamp("date").getTime());
 					System.out.println("New " + link + " - " + Strings.sqlDateFormat(date));
 					list.add(new Episode(id, link, author, date, depth));
 				}
@@ -314,14 +317,14 @@ public class DB {
 				ResultSet rs = con.prepareStatement(
 						"SELECT id, link, depth "
 						+ "FROM storyfb "
-						+ "WHERE id LIKE '" + rootId + "%' AND depth < " + maxDepth).executeQuery();
+						+ "WHERE (id LIKE '" + rootId + "-%' OR id = '" + rootId + "' ) AND depth < " + maxDepth).executeQuery();
 				
 				
 				
 				while(rs.next()) {
-					String id = rs.getString("storyfb.id");
-					String link = rs.getString("storyfb.link");
-					int depth = rs.getInt("storyfb.depth");
+					String id = rs.getString("id");
+					String link = rs.getString("link");
+					int depth = rs.getInt("depth");
 					list.add(new Episode(id, link, "", new Date(), depth));
 				}
 			} catch (SQLException e) {

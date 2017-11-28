@@ -32,8 +32,8 @@ public class InitDB {
 	
 	
 	public static void main(String[] args) throws Exception {
-		//doImport();
-		scanDB();
+		doImport();
+		//scanDB();
 	}
 	
 	public static void scanDB() throws Exception {
@@ -192,7 +192,7 @@ public class InitDB {
 	
 	private static void readStory(String story, String rootId) {
 		Strings.log("Importing " + story);
-		String dirPath = System.getProperty("user.home") + "/Desktop/fbscrape/" + story + "/";
+		String dirPath = System.getProperty("user.home") + "/fbscrape/" + story + "/";
 		
 		DB.session.beginTransaction();
 		

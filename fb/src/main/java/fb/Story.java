@@ -185,6 +185,7 @@ public class Story {
 			depth = 50;
 		}
 		if (depth > 100) depth = 50;
+		else if (depth < 1) depth = 1;
 		EpisodeList outline;
 		try {
 			if (DB.getEp(rootId) == null) return Strings.getFile("generic.html", token).replace("$EXTRA", "ID not found: " + rootId);
