@@ -6,6 +6,19 @@ repositories {
 
 mainClassName = 'fb.Main'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+task fatJar(type: Jar) {
+	manifest {
+        attributes 'Implementation-Title': 'Fiction Branches backend',
+        	'Main-Class': 'fb.Main'
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
 dependencies {
 
     compile 'com.google.guava:guava:21.0'
