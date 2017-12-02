@@ -2,11 +2,9 @@ package fb;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Scanner;
 
 import javax.ws.rs.core.UriBuilder;
 
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -16,7 +14,6 @@ import fb.api.AdminStuff;
 import fb.api.GetStuff;
 import fb.api.LegacyStuff;
 import fb.api.RssStuff;
-import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.db.InitDB;
 
@@ -57,17 +54,6 @@ public class Main {
 		URI baseUri = UriBuilder.fromUri("http://localhost/fb/").port(8080).build();
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
-		HttpServer server = GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig);
-		System.out.println("Type exit to quit.");
-		try (Scanner in = new Scanner(System.in)) {
-			while (true) if (in.nextLine().trim().toLowerCase().equals("exit")) break;
-		}
-
-		server.shutdown();
-		DB.closeSession();
-
-		Strings.log("Bye");
-		System.exit(0);
+		GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig);
 	}
-
 }
