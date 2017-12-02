@@ -20,9 +20,7 @@ task fatJar(type: Jar) {
 }
 
 run {
-    if (project.hasProperty("appArgs")) {
-        args Eval.me(appArgs)
-    }
+    args findProperty('runArgs')
 }
 
 dependencies {
