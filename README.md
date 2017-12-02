@@ -30,8 +30,8 @@ to subsequent episodes, plus the option to add another branch to the story at th
 
 9. `./gradlew run` to run the app.
 
-10. `./gradlew fatJar` to build a runnable jar, including all dependencies
+10. `./gradlew shadowJar` to build a runnable jar, including all dependencies
     - jar will be written to build/libs/fb.jar
-    - run with `java -jar build/libs/fb.jar`
+    - run with `java -Xmx2048m -jar build/libs/fb.jar`
 
 The backend is now running. It can be accessed at http://localhost:8080/fb 
