@@ -113,10 +113,10 @@ public class InitDB {
 		DBRootEpisodes roots = new DBRootEpisodes();
 		roots.setId(1);
 		
-		roots.getRoots().add(DB.session.get(DBEpisode.class, "1"));
-		roots.getRoots().add(DB.session.get(DBEpisode.class, "2"));
-		roots.getRoots().add(DB.session.get(DBEpisode.class, "3"));
-		roots.getRoots().add(DB.session.get(DBEpisode.class, "4"));
+		for (int i=1; i<=4; ++i) {
+			DBEpisode ep = DB.session.get(DBEpisode.class, ""+i);
+			if (ep != null) roots.getRoots().add(ep);
+		}
 		DB.session.beginTransaction();
 		DB.session.save(roots);
 		DB.session.getTransaction().commit();
@@ -185,6 +185,7 @@ public class InitDB {
 		while (index.hasNext()) {
 			String oldId = index.next();
 			String newId = index.next();
+			if (oldId.equals("root") || keyToArr(newId).length == 1) continue;
 			if (map.containsKey(newId)) {
 				Strings.log("Duplicate newId: " + newId + " " + oldId + " " + map.get(newId));
 				//System.exit(1);
