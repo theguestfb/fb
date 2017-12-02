@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
@@ -11,7 +12,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="fbuserdb")
+@Table(name="fbusers")
 public class DBUser implements Serializable {
 	
 	/****/
@@ -26,6 +27,9 @@ public class DBUser implements Serializable {
 	private String id;
 		
 	private String author;
+	
+	@Column(columnDefinition = "text")
+	private String bio;
 	
 	private String password;
 	
@@ -58,6 +62,14 @@ public class DBUser implements Serializable {
 
 	public void setAuthor(String author) {
 		this.author = author;
+	}
+
+	public String getBio() {
+		return bio;
+	}
+
+	public void setBio(String bio) {
+		this.bio = bio;
 	}
 
 	public String getPassword() {

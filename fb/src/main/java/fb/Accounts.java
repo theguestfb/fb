@@ -3,6 +3,7 @@ package fb;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.mail.Authenticator;
@@ -33,7 +34,7 @@ public class Accounts {
 	 * Scan the active sessions and createQueue maps for expired
 	 */
 	static {
-		new Thread() {
+		Thread t = new Thread() {
 			public void run() {
 				while (true) {
 					try {
@@ -69,7 +70,9 @@ public class Accounts {
 					for (String changeToken : deleteTheseTokens) emailChangeQueue.remove(changeToken);
 				}
 			}
-		}.start();
+		};
+		t.setName("AccountTrackerThread");
+		t.start();
 	}
 	
 	public static class UserSession {
@@ -170,8 +173,8 @@ public class Accounts {
 			}
 			sb.append("<a href=/fb/get/" + ep.id + ">" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</a> " + Strings.outputDateFormat(ep.date) + " " + story + "<br/>");
 		}
-		
-		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$EPISODES", sb.toString());
+		String bio = Story.formatBody(user.bio, 0);
+		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$BODY", bio).replace("$EPISODES", sb.toString());
 	}
 	
 	/**
@@ -274,7 +277,6 @@ public class Accounts {
 	public static String create(String email, String password, String password2, String author) {
 		{
 			if (email == null || email.length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address is required");
-			
 			if (DB.emailInUse(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address " + email + " is already in use");
 			if (!EmailValidator.getInstance().isValid(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Invalid email address " + email);
 			if (!password.equals(password2)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Passwords do not match");
@@ -341,6 +343,43 @@ public class Accounts {
 		}
 	}
 	
+	/**
+	 * Changes the author bio of the currently logged in user
+	 * @param fbtoken
+	 * @param theme new theme name
+	 * @throws FBLoginException if user is not logged in, or is root, or bio is incorrect
+	 */
+	public static void changeBio(Cookie fbtoken, String bio) throws FBLoginException {
+		if (fbtoken == null) throw new FBLoginException(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		UserSession sesh = active.get(fbtoken.getValue());
+		if (sesh == null) throw new FBLoginException(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		User user;
+		try {
+			user = DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+		
+		// Check new bio for correctness
+		StringBuilder errors = new StringBuilder();
+		if (bio.length() == 0) errors.append("Body cannot be empty<br/>\n");
+		if (bio.length() > 10000) errors.append("Body cannot be longer than 10000 (" + bio.length() + ")<br/>\n");
+		TreeSet<String> list = new TreeSet<>();
+		for (String s : Story.replacers) if (bio.contains(s)) list.add(s);
+		if (list.size() > 0) {
+			errors.append("Bio may not contain any of the following strings: ");
+			for (String s : list) errors.append("\"" + s + "\"");
+			errors.append("<br/>\n");
+		}
+		if (errors.length() > 0) throw new FBLoginException(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", errors.toString()));
+		
+		try {
+			DB.changeBio(user.id, bio);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", "Invalid user"));
+		}
+	}
+		
 	/**
 	 * 
 	 * @param fbtoken

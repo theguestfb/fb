@@ -8,7 +8,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="legacyids")
+@Table(name="fblegacyids")
 public class DBLegacyId implements Serializable {
 	/****/
 	private static final long serialVersionUID = -3235868657047981276L;

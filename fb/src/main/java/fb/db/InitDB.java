@@ -83,6 +83,7 @@ public class InitDB {
 			user.setAuthor("FB Admin");
 			user.setPassword(BCrypt.hashpw(rootpw, BCrypt.gensalt(10)));
 			user.setEmail(dbemail);
+			user.setBio("Fiction Branches Admin Account");
 			dbemail.setUser(user);
 			DB.session.save(user);
 			DB.session.save(dbemail);
@@ -115,23 +116,6 @@ public class InitDB {
 		readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
-		
-		{
-		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
-		Strings.log("Initializing recents");
-		DBRecents recents = new DBRecents();
-		recents.setId(1);
-		
-		recents.getRecents().add(DB.session.get(DBEpisode.class, "1"));
-		recents.getRecents().add(DB.session.get(DBEpisode.class, "2"));
-		recents.getRecents().add(DB.session.get(DBEpisode.class, "3"));
-		recents.getRecents().add(DB.session.get(DBEpisode.class, "4"));
-		DB.session.beginTransaction();
-		DB.session.save(recents);
-		DB.session.getTransaction().commit();
-		Strings.log("Added recents");
-		
-		}
 		
 		
 		{
@@ -214,6 +198,7 @@ public class InitDB {
 		rootEp.setAuthor(newUser);
 		newUser.setAuthor(rootCont.author);
 		newUser.setPassword("disabled");
+		newUser.setBio("");
 				
 		DB.session.save(rootEp);
 		DB.session.save(newUser);
@@ -331,6 +316,7 @@ public class InitDB {
 				user.setEmail(null);
 				user.setLevel((byte)1);
 				user.setPassword("disabled");
+				user.setBio("");
 				Strings.log("ID must exist, but doesn't: " + childId);
 				DBEpisode parent = DB.session.get(DBEpisode.class, parentId);
 				child.setId(childId);
@@ -363,6 +349,7 @@ public class InitDB {
 				user.setEmail(null);
 				user.setLevel((byte)1);
 				user.setPassword("disabled");
+				user.setBio("");
 								
 				child.setId(childId);
 				child.setDepth(keyToArr(childId).length);

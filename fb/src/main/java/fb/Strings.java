@@ -114,31 +114,40 @@ public class Strings {
 	}
 	
 	private static void updateFile(File f) {
-		System.out.println("Updating file " + f.getName());
+		log("Updating modified file " + f.getName());
 		files.put(f.getName(), readFile(f));
 	}
 	static {
-		init();
+		initFiles();
 	}
-	private static void init()  {
-		WatchService watcher = null;
-		try {
-			watcher = FileSystems.getDefault().newWatchService();
-		} catch (IOException e) {
-			log("Error creating watch service");
-			return;
-		}
+	private static void initFiles()  {
+		File dirFile = firstRead(); // ALWAYS CALL THIS!
+		startFileWatcher(dirFile); // only call this if you want file changes to be watched for and loaded (you probably do)
+	}
+	private static File firstRead() {
 		File dirFile = new File(BASE_DIR + "/static_snippets");
 		if (dirFile.exists()) {
 			if (!dirFile.isDirectory()) {
 				log(dirFile.getAbsolutePath() + " exists and is not a directory");
-				return;
+				System.exit(1);
+				return null;
 			}
 		} else log("Directory " + dirFile.getAbsolutePath() + " does not exist");
 		
 		for (File file : dirFile.listFiles()) if (!file.getName().startsWith(".") ) {
 			files.put(file.getName(), readFile(file));
 			Strings.log("Loading file " + file.getName());
+		}
+		return dirFile;
+	}
+	
+	private static void startFileWatcher(File dirFile) {
+		WatchService watcher = null;
+		try {
+			watcher = FileSystems.getDefault().newWatchService();
+		} catch (IOException e) {
+			log("Error creating watch service");
+			return;
 		}
 		Path dir = dirFile.toPath();
 		try {
@@ -148,7 +157,7 @@ public class Strings {
 			return;
 		}
 		final WatchService finalWatcher = watcher;
-		new Thread() {
+		Thread t = new Thread() {
 			public void run() {
 				WatchKey key = null;
 				while (true) {
@@ -173,7 +182,9 @@ public class Strings {
 						break;
 				}
 			}
-		}.start();
+		};
+		t.setName("FileTrackerThread");
+		t.start();
 	}
 	
 	private static final DateFormat outputDate = new SimpleDateFormat("EEE, MMM d yyyy HH:mm:ss");
@@ -181,18 +192,18 @@ public class Strings {
 		String ret;
 		synchronized(outputDate) {
 			ret = outputDate.format(date);
-			System.out.println("Date: " + ret);
 		}
 		return ret;
 	}
 	
-	private static final DateFormat sqlDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	public static String sqlDateFormat(Date date) {
-		String ret;
-		synchronized(sqlDate) {
-			ret = sqlDate.format(date);
+	private static final ThreadLocal<DateFormat> sqlDate = new ThreadLocal<DateFormat>() {
+		protected DateFormat initialValue() {
+			return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		}
-		return ret;
+	};	
+			
+	public static String sqlDateFormat(Date date) {
+		return sqlDate.get().format(date);
 	}
 
 	/**

@@ -35,7 +35,6 @@ public class DB {
 			Configuration configuration = new Configuration().configure();
 			
 			configuration.addAnnotatedClass(DBEpisode.class);
-			configuration.addAnnotatedClass(DBRecents.class);
 			configuration.addAnnotatedClass(DBLegacyId.class);
 			configuration.addAnnotatedClass(DBUser.class);
 			configuration.addAnnotatedClass(DBEmail.class);
@@ -44,8 +43,7 @@ public class DB {
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
 			session = sessionFactory.openSession();
-			//JdbcConnectionPool cp = JdbcConnectionPool.create("jdbc:h2:/opt/fb/storydb", "", "");
-			try {
+			try { // I wish this didn't have to be a separate connection, but idk how to do it differently without using HQL instead of SQL, which I don't care to learn
 				//con = cp.getConnection();
 				con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/fictionbranches", "fictionbranches", "");
 			} catch (SQLException e) {
@@ -95,7 +93,6 @@ public class DB {
 	public static Episode addEp(String id, String link, String title, String body, String authorId, Date date) throws DBException {
 		synchronized (dbLock) {
 			DBEpisode parent = session.get(DBEpisode.class, id);
-			DBRecents recents = session.get(DBRecents.class, 1);
 			DBUser author = session.get(DBUser.class, authorId);
 
 			if (parent == null) throw new DBException("Not found: " + id);
@@ -123,15 +120,11 @@ public class DB {
 		
 			session.beginTransaction();
 			
-			while (recents.getRecents().size() >= 25) recents.getRecents().remove(recents.getRecents().size() - 1);
-			recents.getRecents().add(0, child);
-			
 			parent.getChildren().add(child);
 			
 			session.save(child);
 			session.merge(parent);
 			session.merge(author);
-			session.merge(recents);
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
 			session.getTransaction().commit();
 			Episode ret = new Episode(child);
@@ -155,7 +148,6 @@ public class DB {
 	public static Episode addRootEp(String link, String title, String body, String authorId, Date date) throws DBException {
 		synchronized (dbLock) {
 			//DBEpisode parent = session.get(DBEpisode.class, id);
-			DBRecents recents = session.get(DBRecents.class, 1);
 			DBUser author = session.get(DBUser.class, authorId);
 			DBRootEpisodes roots = session.get(DBRootEpisodes.class, 1);
 
@@ -184,9 +176,6 @@ public class DB {
 		
 			session.beginTransaction();
 			
-			while (recents.getRecents().size() >= 25) recents.getRecents().remove(recents.getRecents().size() - 1);
-			recents.getRecents().add(0, child);
-			
 			roots.getRoots().add(child);
 			
 			//parent.getChildren().add(child);
@@ -194,7 +183,6 @@ public class DB {
 			session.save(child);
 			session.merge(roots);
 			session.merge(author);
-			session.merge(recents);
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
 			session.getTransaction().commit();
 			Episode ret = new Episode(child);
@@ -261,14 +249,6 @@ public class DB {
 	 * @return
 	 * @throws DBException wtf
 	 */
-	public static EpisodeList getRecentsOld() throws DBException {
-		synchronized(dbLock) {
-			DBRecents recents = session.get(DBRecents.class, 1);
-			if (recents == null) throw new DBException("Recents not found (tell Phoenix if you see this, it should never happen)");
-			return new EpisodeList(recents);
-		}
-	}
-	
 	public static EpisodeList getRecents(int days) throws DBException {
 		synchronized(dbLock) {
 			ArrayList<Episode> list = new ArrayList<>();
@@ -280,10 +260,10 @@ public class DB {
 			try {
 
 				ResultSet rs = con.prepareStatement(
-						"SELECT storyfb.id, storyfb.link, storyfb.date, storyfb.depth, storyfb.author_id, fbuserdb.author "
-						+ "FROM storyfb,fbuserdb "
-						+ "WHERE storyfb.author_id = fbuserdb.id AND storyfb.date > '" + Strings.sqlDateFormat(d) + "' "
-								+ "ORDER BY storyfb.date DESC").executeQuery();
+						"SELECT fbepisodes.id, fbepisodes.link, fbepisodes.date, fbepisodes.depth, fbepisodes.author_id, fbusers.author "
+						+ "FROM fbepisodes,fbusers "
+						+ "WHERE fbepisodes.author_id = fbusers.id AND fbepisodes.date > '" + Strings.sqlDateFormat(d) + "' "
+								+ "ORDER BY fbepisodes.date DESC").executeQuery();
 				
 				
 				
@@ -292,9 +272,7 @@ public class DB {
 					String link = rs.getString("link");
 					String author = rs.getString("author");
 					int depth = rs.getInt("depth");
-					//Date date = rs.getDate("storyfb.date");
 					Date date = new Date(rs.getTimestamp("date").getTime());
-					System.out.println("New " + link + " - " + Strings.sqlDateFormat(date));
 					list.add(new Episode(id, link, author, date, depth));
 				}
 			} catch (SQLException e) {
@@ -316,7 +294,7 @@ public class DB {
 
 				ResultSet rs = con.prepareStatement(
 						"SELECT id, link, depth "
-						+ "FROM storyfb "
+						+ "FROM fbepisodes "
 						+ "WHERE (id LIKE '" + rootId + "-%' OR id = '" + rootId + "' ) AND depth < " + maxDepth).executeQuery();
 				
 				
@@ -368,6 +346,7 @@ public class DB {
 			user.setLevel((byte) 1);
 			user.setAuthor(author);
 			user.setEmail(dbemail);
+			user.setBio("");
 			//user.setPassword(BCrypt.hashpw(password,BCrypt.gensalt(10)));
 			user.setPassword(password);
 			dbemail.setUser(user);
@@ -415,6 +394,23 @@ public class DB {
 			DBUser user = session.get(DBUser.class, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setTheme(newTheme);
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
+		}
+	}
+	
+	/**
+	 * Change a user's bio
+	 * @param id id of user
+	 * @param newBio new bio 
+	 * @throws DBException if id not found
+	 */
+	public static void changeBio(String id, String newBio) throws DBException {
+		synchronized (dbLock) {
+			DBUser user = session.get(DBUser.class, id);
+			if (user == null) throw new DBException("User id does not exist");
+			user.setBio(newBio);
 			session.beginTransaction();
 			session.merge(user);
 			session.getTransaction().commit();
@@ -532,7 +528,7 @@ public class DB {
 	
 	private static ArrayList<Character> userIdChars = new ArrayList<>();
 	public static Random r = new Random();
-	static {
+	static { // this could be added to the beginning of the static block at the top of this file, but it's fine here since it only affects userIdChars
 		for (char c='a'; c<='z'; ++c) userIdChars.add(c);
 		for (char c='A'; c<='Z'; ++c) userIdChars.add(c);
 		for (char c='0'; c<='9'; ++c) userIdChars.add(c);

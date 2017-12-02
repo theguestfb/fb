@@ -163,20 +163,6 @@ public class GetStuff {
 		return sb.toString();
 	}
 
-	/**
-	 * Gets a list of recent episodes
-	 * 
-	 * @param id
-	 *            id of episode (1-7-4-...-3)
-	 * @return HTML episode
-	 */
-	@GET
-	@Path("recentold")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response recentold(@CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getRecentsOld(fbtoken)).build();
-	}
-	
 	@GET
 	@Path("recent")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")

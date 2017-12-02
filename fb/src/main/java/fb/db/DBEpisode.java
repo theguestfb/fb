@@ -8,22 +8,17 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 
 @Entity
-@Table(name="storyfb")
+@Table(name="fbepisodes")
 public class DBEpisode implements Serializable {
 	
 	/*****/
 	private static final long serialVersionUID = 1653241208781785580L;
-
-	/*@Id
-	@GeneratedValue
-	private int generatedId;*/
 
 	@Id
 	@Column( length = 4096 )
@@ -46,7 +41,7 @@ public class DBEpisode implements Serializable {
 	@OneToMany(mappedBy = "parent")
 	private List<DBEpisode> children = new ArrayList<>();
 	
-	@Lob
+	@Column(columnDefinition = "text")
 	private String body;
 	
 	// The following constructor, getters, and setters are required for JPA persistence

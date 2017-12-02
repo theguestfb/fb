@@ -22,6 +22,7 @@ import org.commonmark.node.ThematicBreak;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.html.HtmlEscapers;
 
 import fb.Accounts.FBLoginException;
@@ -127,28 +128,6 @@ public class Story {
 	 * 
 	 * @return HTML recents
 	 */
-	public static String getRecentsOld(Cookie token) {
-		EpisodeList recents;
-		try {
-			recents = DB.getRecentsOld();
-		} catch (DBException e) {
-			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
-		}
-				
-		StringBuilder sb = new StringBuilder();
-		for (Episode child : recents.episodes) if (child != null){
-			String story;
-			try {
-				story = "(" + DB.getEp(child.id.split("-")[0]).link + ")";
-			} catch (DBException e) {
-				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
-			}
-			sb.append("<p><a href=get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
-		}
-		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
-		
-	}
-	
 	public static String getRecents(Cookie token, String daysString) {
 		int days;
 		try {
@@ -427,8 +406,8 @@ public class Story {
 		
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
-	
-	private static final String[] replacers = {"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES","$STYLE"};
+	public static final ImmutableSet<String> replacers = 
+			ImmutableSet.copyOf(new String[]{"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES","$STYLE"});
 	
 	/**
 	 * Escape body text and convert markdown/formatting to HTML

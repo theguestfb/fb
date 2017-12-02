@@ -1,12 +1,9 @@
 package fb.api;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -32,18 +29,6 @@ import fb.objects.EpisodeList;
 
 @Path("")
 public class RssStuff {
-	
-	public static void main(String[] asdf) throws Exception {
-		ArrayList<String> list = new ArrayList<>();
-		try (Scanner in = new Scanner(new File("/usr/share/dict/words"))) {
-			while (in.hasNext()) {
-				String line = in.nextLine().trim();
-				if (line.length() >= 4 && line.length() <= 6) list.add(line);
-			}
-		}
-		Random r = new Random();
-		for (int i=0; i<4; ++i) System.out.println(list.get(r.nextInt(list.size())));
-	}
 	
 	@GET
 	@Path("feed")

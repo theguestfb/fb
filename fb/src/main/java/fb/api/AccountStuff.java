@@ -207,6 +207,40 @@ public class AccountStuff {
 	}
 	
 	@GET
+	@Path("changebio")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changebio(@CookieParam("fbtoken") Cookie fbtoken) {
+		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
+		String bio;
+		try {
+			bio = Accounts.getUser(fbtoken).bio;
+		} catch (FBLoginException e) {
+			return Response.ok("You must be logged in to do that").build();
+		}
+		return Response.ok(Strings.getFile("changebioform.html", fbtoken).replace("$EXTRA", "").replace("$BODY", bio)).build();
+	}
+	
+	@POST
+	@Path("changebiopost")
+	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response changebiopost(@FormParam("bio") String bio, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		try {
+			Accounts.changeBio(fbtoken, bio);
+		} catch (FBLoginException e) {
+			return Response.ok(e.getMessage()).build();  //failed, try again
+		}
+		return Response.seeOther(GetStuff.createURI("/fb/useraccount")).build(); //redirect on success
+	}
+	
+	@GET
 	@Path("changepassword")
 	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {	

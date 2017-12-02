@@ -10,7 +10,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="rootepisodes")
+@Table(name="fbrootepisodes")
 public class DBRootEpisodes implements Serializable {
 	/****/
 	private static final long serialVersionUID = 826937549665985189L;

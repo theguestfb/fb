@@ -10,7 +10,7 @@ import javax.persistence.Table;
 
 
 @Entity
-@Table(name="fbemaildb")
+@Table(name="fbemails")
 public class DBEmail implements Serializable {
 	
 	/****/
