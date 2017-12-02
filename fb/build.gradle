@@ -23,6 +23,7 @@ run {
 	if (project.hasProperty('runArgs')) {
  		args findProperty('runArgs') 
  	}
+ 	standardInput = System.in
 }
 
 dependencies {
