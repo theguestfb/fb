@@ -20,7 +20,7 @@ task fatJar(type: Jar) {
 }
 
 run {
-	if (project.hasProperty('runArgs') {
+	if (project.hasProperty('runArgs')) {
  		args findProperty('runArgs') 
  	}
 }
