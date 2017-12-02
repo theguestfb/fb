@@ -24,6 +24,7 @@ public class Main {
 		
 		if (args.length > 1) usage();
 		if (args.length == 0) runServer();
+		else if (args[0].trim().length() == 0) runServer();
 		else switch (args[0].trim().toLowerCase()) {
 		case "run":
 			runServer();
@@ -40,6 +41,7 @@ public class Main {
 			InitDB.countDB();
 			break;
 		default:
+			System.err.println("Unknown argument: " + args[0] + " (" + args[0].length() + ")");
 			usage();
 		}
 	}
@@ -64,6 +66,7 @@ public class Main {
 		URI baseUri = UriBuilder.fromUri("http://localhost/fb/").port(8080).build();
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
+		Strings.log("Starting server");
 		GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig);
 	}
 }

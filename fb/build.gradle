@@ -1,5 +1,15 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+    }
+}
+
 apply plugin: 'java'
 apply plugin:'application'
+apply plugin: 'com.github.johnrengelman.shadow'
 repositories {
     jcenter()
 }
@@ -9,14 +19,21 @@ mainClassName = 'fb.Main'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-task fatJar(type: Jar) {
-	manifest {
-        attributes 'Implementation-Title': 'Fiction Branches backend',
-        	'Main-Class': 'fb.Main'
+shadowJar {
+	baseName = project.name
+	classifier = null
+	version = null
+}
+
+jar {
+    from {
+        (configurations.runtime).collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
-    baseName = project.name
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
+    manifest {
+        attributes("Main-Class": "fb.Main" )
+    }
 }
 
 run {
@@ -32,7 +49,7 @@ dependencies {
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
     
-    
+    compile group: 'org.glassfish.jersey.core', name: 'jersey-common', version: '2.26'
     compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-grizzly2-http', version: '2.26'
 	compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '2.26'
     compile group: 'com.sun.jersey', name: 'jersey-grizzly', version: '1.19.4'
