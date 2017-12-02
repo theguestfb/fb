@@ -1,6 +1,5 @@
 package fb;
 
-import java.io.IOException;
 import java.net.URI;
 
 import javax.ws.rs.core.UriBuilder;
@@ -14,12 +13,14 @@ import fb.api.AdminStuff;
 import fb.api.GetStuff;
 import fb.api.LegacyStuff;
 import fb.api.RssStuff;
+import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.db.InitDB;
+import fb.objects.Episode;
 
 public class Main {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		
 		if (args.length > 1) usage();
 		if (args.length == 0) runServer();
@@ -51,6 +52,15 @@ public class Main {
 	
 	private static void runServer() {
 		Strings.log("Hi");
+		try {
+			for (Episode rootEp : DB.getRoots().episodes) {
+				Strings.log("Found root episode: " + rootEp.id + " " + rootEp.link);
+			}
+		} catch (DBException e) {
+			System.err.println("No root episodes found");
+			throw new RuntimeException(e);
+		}
+		
 		URI baseUri = UriBuilder.fromUri("http://localhost/fb/").port(8080).build();
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
