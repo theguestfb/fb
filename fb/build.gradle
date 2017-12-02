@@ -19,6 +19,12 @@ task fatJar(type: Jar) {
     with jar
 }
 
+run {
+    if (project.hasProperty("appArgs")) {
+        args Eval.me(appArgs)
+    }
+}
+
 dependencies {
 
     compile 'com.google.guava:guava:21.0'
