@@ -52,7 +52,7 @@ public class DB {
 		}
 	}
 	
-	static void closeSession() {
+	public static void closeSession() {
 		session.close();
 		sessionFactory.close();
 		try {

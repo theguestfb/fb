@@ -1,9 +1,7 @@
 package fb.db;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -21,6 +19,7 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import fb.Comparators;
 import fb.Strings;
+import fb.db.DB.DBException;
 
 /**
  * Run this class's main() (as a regular Java Application, not on tomcat) to
@@ -31,42 +30,32 @@ public class InitDB {
 	private static Random r = new Random();
 	
 	
-	public static void main(String[] args) throws Exception {
-		doImport();
-		//scanDB();
-	}
-	
-	public static void scanDB() throws Exception {
-		try (BufferedWriter out = new BufferedWriter(new FileWriter(System.getProperty("user.home") + "/Desktop/log.txt"))) {
-
+	public static void countDB()  {
 			/***** Count episodes in DB ******/
 			long stop, start = System.nanoTime();
 
-			int c = count("4", out);
+			int c = count("4");
 			stop = System.nanoTime();
 			System.out.println("finished tfog: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("3", out);
+			c = count("3");
 			stop = System.nanoTime();
 			System.out.println("finished af: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("1", out);
+			c = count("1");
 			stop = System.nanoTime();
 			System.out.println("finished forum: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("2", out);
+			c = count("2");
 			stop = System.nanoTime();
 			System.out.println("finished yawyw: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
-
-			out.flush();
-		}
 	}
 	
-	public static void doImport() throws Exception {
+	public static void doImport() throws DBException  {
 		
 		try (Scanner in = new Scanner(System.in)) {
 			
@@ -145,34 +134,13 @@ public class InitDB {
 	 * @return number of episodes (including root) in tree
 	 * @throws IOException 
 	 */
-	static int count(String id, BufferedWriter out) throws IOException {
+	static int count(String id) {
 		DBEpisode ep = DB.session.get(DBEpisode.class, id);
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
-		/*{
-			StringBuilder sb = new StringBuilder();
-			if (ep.getBody().contains("â€")) sb.append("â€ ");
-			if (sb.length() > 0) {
-				out.write(sb + ep.getId());
-				out.newLine();
-				System.out.println(sb + ep.getId());
-			}
-		}*/
-		DB.session.beginTransaction();
-		ep.setDepth(keyToArr(ep.getId()).length);
-		DB.session.getTransaction().commit();
-		++tCount;
-		++lCount;
-		if (lCount == 2000) {
-			System.out.println(tCount + " " + ep.getId());
-			lCount = 0;
-		}
-		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId(), out);
+		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
 		return sum;
 	}
-	
-	private static int tCount = 0;
-	private static int lCount = 0;
 	
 	private static void readStory(String story, String rootId) {
 		Strings.log("Importing " + story);
