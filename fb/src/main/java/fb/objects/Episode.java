@@ -51,7 +51,8 @@ public class Episode {
 		public ChildEpisode(DBEpisode ep) {
 			this.id = ep.getId();
 			this.link = ep.getLink();
-			this.count = ep.getChildren().size();
+			//this.count = ep.getChildren().size();
+			this.count = ep.getChildCount();
 		}
 	}
 }

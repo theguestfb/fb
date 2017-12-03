@@ -102,25 +102,31 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		readStory("yawyw", "2");
+		//readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
 		
 		{
-		// Recents HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
-		Strings.log("Initializing roots");
-		DBRootEpisodes roots = new DBRootEpisodes();
-		roots.setId(1);
+			// Roots HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
+			Strings.log("Initializing roots");
+			DBRootEpisodes roots = new DBRootEpisodes();
+			roots.setId(1);
+			
+			for (int i=1; i<=4; ++i) {
+				DBEpisode ep = DB.session.get(DBEpisode.class, ""+i);
+				if (ep != null) roots.getRoots().add(ep);
+			}
+			DB.session.beginTransaction();
+			DB.session.save(roots);
+			DB.session.getTransaction().commit();
+			Strings.log("Added roots. Generating child counts");
+			
+			for (DBEpisode ep : roots.getRoots()) {
+				generateChildCounts(ep.getId());
+				Strings.log("Generated child counts for: " + ep.getId() + " " + ep.getLink());
+			}
 		
-		for (int i=1; i<=4; ++i) {
-			DBEpisode ep = DB.session.get(DBEpisode.class, ""+i);
-			if (ep != null) roots.getRoots().add(ep);
-		}
-		DB.session.beginTransaction();
-		DB.session.save(roots);
-		DB.session.getTransaction().commit();
-		Strings.log("Added roots");
 		}
 		
 		DB.closeSession();
@@ -139,6 +145,18 @@ public class InitDB {
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
+		return sum;
+	}
+	
+	private static int generateChildCounts(String id) {
+		DBEpisode ep = DB.session.get(DBEpisode.class, id);
+		if (ep == null) System.err.println("null");
+		int sum = 1; // count this episode
+		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=generateChildCounts(child.getId());
+		DB.session.beginTransaction();
+		ep.setChildCount(sum);
+		DB.session.merge(ep);
+		DB.session.getTransaction().commit();
 		return sum;
 	}
 	

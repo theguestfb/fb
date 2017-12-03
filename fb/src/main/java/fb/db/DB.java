@@ -115,6 +115,7 @@ public class DB {
 			child.setAuthor(author);
 			child.setParent(parent);
 			child.setDate(date);
+			child.setChildCount(1);
 			
 			author.getEpisodes().add(child);
 		
@@ -122,8 +123,18 @@ public class DB {
 			
 			parent.getChildren().add(child);
 			
+			ArrayList<DBEpisode> parents = new ArrayList<>(child.getDepth());
+			parent.setChildCount(parent.getChildCount()+1);
+			parents.add(parent);
+			while (parents.get(parents.size()-1).getParent() != null && !parents.get(parents.size()-1).getParent().equals(parents.get(parents.size()-1))) {
+				parent = parent.getParent();
+				parent.setChildCount(parent.getChildCount()+1);
+				parents.add(parent);
+			}
+			
 			session.save(child);
-			session.merge(parent);
+			//session.merge(parent);
+			for (DBEpisode parEp : parents) session.merge(parEp);
 			session.merge(author);
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
 			session.getTransaction().commit();
@@ -171,6 +182,7 @@ public class DB {
 			child.setAuthor(author);
 			child.setParent(null);
 			child.setDate(date);
+			child.setChildCount(1);
 			
 			author.getEpisodes().add(child);
 		

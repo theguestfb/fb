@@ -30,6 +30,8 @@ public class DBEpisode implements Serializable {
 	
 	private int depth;
 	
+	private int childCount;
+	
 	@ManyToOne
 	private DBUser author;
 	
@@ -79,6 +81,14 @@ public class DBEpisode implements Serializable {
 
 	public void setDepth(int depth) {
 		this.depth = depth;
+	}
+
+	public int getChildCount() {
+		return childCount;
+	}
+
+	public void setChildCount(int childCount) {
+		this.childCount = childCount;
 	}
 
 	public String getBody() {
