@@ -102,7 +102,7 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		//readStory("yawyw", "2");
+		readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		

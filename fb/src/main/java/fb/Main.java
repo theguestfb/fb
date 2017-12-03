@@ -1,5 +1,6 @@
 package fb;
 
+import java.io.IOException;
 import java.net.URI;
 
 import javax.ws.rs.core.UriBuilder;
@@ -10,6 +11,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import fb.api.AccountStuff;
 import fb.api.AddStuff;
 import fb.api.AdminStuff;
+import fb.api.CharsetResponseFilter;
 import fb.api.GetStuff;
 import fb.api.LegacyStuff;
 import fb.api.RssStuff;
@@ -66,7 +68,12 @@ public class Main {
 		URI baseUri = UriBuilder.fromUri("http://localhost/fb/").port(8080).build();
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
+		resourceConfig.register(CharsetResponseFilter.class);
 		Strings.log("Starting server");
-		GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig);
+		try {
+			GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig).start();
+		} catch (IOException e) {
+			Strings.log("Error starting server");
+		}
 	}
 }
