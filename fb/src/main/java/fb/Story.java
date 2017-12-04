@@ -133,18 +133,29 @@ public class Story {
 	 * 
 	 * @return HTML recents
 	 */
-	public static String getRecents(Cookie token, String daysString) {
-		int days;
-		try {
-			days = Integer.parseInt(daysString);
+	public static String getRecents(Cookie token, String numString, String rootId) {
+		int root = -1;
+		{ // Check rootId is actually a root Id
+			if (rootId == null || rootId.length() == 0) root = 0;
+			for (char c : rootId.toCharArray()) if (c<'0' || c>'9') root = 0;
+			if (root == -1) try {
+				root = Integer.parseInt(rootId);
+			} catch (NumberFormatException e) {
+				root = 0;
+			}
+		}
+		int num;
+		try { // Check that numString is a number
+			num = Integer.parseInt(numString);
+			if (num > 100) num = 100;
 		} catch (NumberFormatException e) {
-			days = 25;
+			num = 25;
 		}
 		EpisodeList recents;
 		try {
-			recents = DB.getRecents(days);
+			recents = DB.getRecents(root, num);
 		} catch (DBException e) {
-			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
+			return Strings.getFile("generic.html", token).replace("$EXTRA", e.getMessage());
 		}
 				
 		StringBuilder sb = new StringBuilder();
@@ -199,12 +210,12 @@ public class Story {
 		try {
 			roots = DB.getRoots();
 		} catch (DBException e) {
-			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Welcome is broken, you should never see this, tell Phoenix");
 		}
 				
 		StringBuilder sb = new StringBuilder();
 		for (Episode ep : roots.episodes) {
-			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.children.size() + ")" + "</h3>");
+			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.children.size() + ")</h3>" + " <a href=/fb/recent/" + ep.id + ">" + ep.link + "'s recently added episodes</a> <a href=/fb/feed/" + ep.id + "><img width=20 height=20 src=/images/rss.png /></a><br/><br/>");
 		}
 		return Strings.getFile("welcome.html", token).replace("$EPISODES", sb.toString());
 		

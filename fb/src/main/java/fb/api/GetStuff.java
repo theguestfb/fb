@@ -162,10 +162,17 @@ public class GetStuff {
 	}
 
 	@GET
+	@Path("recent/{id}")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	public Response recentstory(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("num") String num, @PathParam("id") String id) {
+		return Response.ok(Story.getRecents(fbtoken, num, id)).build();
+	}
+	
+	@GET
 	@Path("recent")
 	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
-	public Response recent(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("days") String days) {
-		return Response.ok(Story.getRecents(fbtoken, days)).build();
+	public Response recent(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("num") String num) {
+		return Response.ok(Story.getRecents(fbtoken, num, "0")).build();
 	}
 	
 	@GET

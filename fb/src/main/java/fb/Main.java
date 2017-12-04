@@ -23,7 +23,6 @@ import fb.objects.Episode;
 public class Main {
 
 	public static void main(String[] args) {
-		
 		if (args.length > 1) usage();
 		if (args.length == 0) runServer();
 		else if (args[0].trim().length() == 0) runServer();

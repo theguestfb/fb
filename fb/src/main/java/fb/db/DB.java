@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
 
@@ -273,7 +272,7 @@ public class DB {
 	 * @return
 	 * @throws DBException wtf
 	 */
-	public static EpisodeList getRecents(int days) throws DBException {
+	/*public static EpisodeList getRecents(int days) throws DBException {
 		synchronized(dbLock) {
 			ArrayList<Episode> list = new ArrayList<>();
 			
@@ -287,7 +286,47 @@ public class DB {
 						"SELECT fbepisodes.id, fbepisodes.link, fbepisodes.date, fbepisodes.depth, fbepisodes.author_id, fbusers.author "
 						+ "FROM fbepisodes,fbusers "
 						+ "WHERE fbepisodes.author_id = fbusers.id AND fbepisodes.date > '" + Strings.sqlDateFormat(d) + "' "
-								+ "ORDER BY fbepisodes.date DESC").executeQuery();
+						+ "ORDER BY fbepisodes.date DESC").executeQuery();
+				
+				
+				
+				while(rs.next()) {
+					String id = rs.getString("id");
+					String link = rs.getString("link");
+					String author = rs.getString("author");
+					int depth = rs.getInt("depth");
+					Date date = new Date(rs.getTimestamp("date").getTime());
+					list.add(new Episode(id, link, author, date, depth));
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+				throw new DBException(e);
+			}
+			return new EpisodeList(list);
+		}
+	}*/
+	
+	/**
+	 * Get num most recent episodes of a particular story, or of all stories
+	 * @param root root id for story, or 0 to get all stories
+	 * @param num number of episodes to get
+	 * @return
+	 * @throws DBException
+	 */
+	public static EpisodeList getRecents(int root, int num) throws DBException {
+		synchronized(dbLock) {
+			ArrayList<Episode> list = new ArrayList<>();
+
+			if (root != 0) DB.getEp(""+root);
+			
+			try {
+
+				ResultSet rs = con.prepareStatement(
+						"SELECT fbepisodes.id, fbepisodes.link, fbepisodes.date, fbepisodes.depth, fbepisodes.author_id, fbusers.author "
+						+ "FROM fbepisodes,fbusers "
+						+ "WHERE fbepisodes.author_id = fbusers.id " + ((root>0)?("AND " + "(fbepisodes.id LIKE '" + root + "-%' OR fbepisodes.id = '" + root + "' )"):"")
+						+ "ORDER BY fbepisodes.date DESC " 
+						+ "LIMIT " + num + "").executeQuery();
 				
 				
 				

@@ -20,6 +20,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import fb.Comparators;
 import fb.Strings;
 import fb.db.DB.DBException;
+import fb.objects.Episode;
 
 /**
  * Run this class's main() (as a regular Java Application, not on tomcat) to
@@ -126,16 +127,22 @@ public class InitDB {
 			DB.session.getTransaction().commit();
 			Strings.log("Added roots. Generating child counts");
 			
-			for (DBEpisode ep : roots.getRoots()) {
-				generateChildCounts(ep.getId());
-				Strings.log("Generated child counts for: " + ep.getId() + " " + ep.getLink());
-			}
+			generateChildCounts();
 		
 		}
 		
 		DB.closeSession();
 		Strings.log("Fin");
 		System.exit(0);
+	}
+	
+	private static void generateChildCounts() throws DBException {
+		for (Episode ep : DB.getRoots().episodes) {
+			long start = System.nanoTime();
+			generateChildCounts(ep.id);
+			long stop = System.nanoTime();
+			Strings.log("Generated child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + ep.id + " " + ep.link);
+		}
 	}
 		
 	/**
@@ -161,6 +168,7 @@ public class InitDB {
 		ep.setChildCount(sum);
 		DB.session.merge(ep);
 		DB.session.getTransaction().commit();
+		if (PRINT_EPISODES_ADDED) System.out.println("Generated child counts: " + id);
 		return sum;
 	}
 	
