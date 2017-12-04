@@ -25,12 +25,12 @@ to subsequent episodes, plus the option to add another branch to the story at th
 7. Set up postgres with database named fictionbranches, and a roll named fictionbranches with access to it
 
 8. Database
-    - If you have raw scrape data, put it in ~/fbscrape and do `./gradlew run -PrunArgs='import'` to initiate a scrape. It will ask your for passwords for the root account and mine, the begin to import the raw scrape into the db. 
+    - If you have raw scrape data, put it in ~/fbscrape and do `./gradlew run -PrunArgs='init'` to initiate a scrape. It will ask your for passwords for the root account and mine, the begin to import the raw scrape into the db. 
     - If you already have the db, name it fictionbranches in postgres and make sure the postgres roll fictionbranches can be logged in to with no password and has access to the db in postgres. 
 
 9. `./gradlew run` to run the app.
 
-10. `./gradlew shadowJar` to build a runnable jar, including all dependencies
+10. `./gradlew jar` to build a runnable jar, including all dependencies
     - jar will be written to build/libs/fb.jar
     - run with `java -Xmx2048m -jar build/libs/fb.jar`
 
