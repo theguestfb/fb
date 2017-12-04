@@ -32,7 +32,7 @@ public class RssStuff {
 	
 	@GET
 	@Path("feed")
-	@Produces("application/rss+xml; charset=UTF-8")
+	@Produces("application/rss+xml")
 	public Response getFeed() throws IOException, FeedException {
 		Writer writer = new StringWriter();
 		new SyndFeedOutput().output(generate(), writer);

@@ -37,6 +37,10 @@ public class DBEpisode implements Serializable {
 	
 	private Date date;
 	
+	private DBUser editor;
+	
+	private Date editDate;
+	
 	@ManyToOne
 	private DBEpisode parent;
 	
@@ -109,6 +113,22 @@ public class DBEpisode implements Serializable {
 	public void setDate(Date date) {
 		this.date = date;
 	}
+	public DBUser getEditor() {
+		return editor;
+	}
+
+	public void setEditor(DBUser editor) {
+		this.editor = editor;
+	}
+
+	public Date getEditDate() {
+		return editDate;
+	}
+
+	public void setEditDate(Date editDate) {
+		this.editDate = editDate;
+	}
+
 	public DBEpisode getParent() {
 		return parent;
 	}

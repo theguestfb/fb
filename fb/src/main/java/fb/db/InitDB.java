@@ -27,6 +27,10 @@ import fb.db.DB.DBException;
  */
 public class InitDB {
 
+	
+	private static final boolean PRINT_EPISODES_ADDED = true; // enable to print each episode's newid to stdout when it is added to the db
+	
+	
 	private static Random r = new Random();
 	
 	
@@ -102,7 +106,7 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		readStory("yawyw", "2");
+		//readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
@@ -182,6 +186,7 @@ public class InitDB {
 		rootEp.setDepth(keyToArr(rootId).length);
 		newUser.getEpisodes().add(rootEp);
 		rootEp.setAuthor(newUser);
+		rootEp.setEditor(newUser);
 		newUser.setAuthor(rootCont.author);
 		newUser.setPassword("disabled");
 		newUser.setBio("");
@@ -224,6 +229,7 @@ public class InitDB {
 					legacy.setNewId(newId);
 					DB.session.save(legacy);
 					DB.session.getTransaction().commit();
+					if (PRINT_EPISODES_ADDED) System.out.println("Added legacyid " + newId);
 				}
 			}
 		};
@@ -298,6 +304,8 @@ public class InitDB {
 				child.setAuthor(user);
 				child.setBody("(Empty)");
 				child.setDate(badDate);
+				child.setEditor(user);
+				child.setEditDate(badDate);
 				user.getEpisodes().add(child);
 				user.setAuthor("(Empty)");
 				user.setEmail(null);
@@ -316,6 +324,7 @@ public class InitDB {
 				DB.session.save(child);
 				DB.session.merge(parent);
 				DB.session.getTransaction().commit();
+				if (PRINT_EPISODES_ADDED) System.out.println("Added episode " + child.getId());
 			} else { // otherwise, load the episode from file
 				File f = new File(dirPath + map.get(newId));
 				DB.session.beginTransaction();
@@ -342,6 +351,7 @@ public class InitDB {
 				child.setDepth(keyToArr(childId).length);
 				child.setParent(parent);
 				child.setAuthor(user);
+				child.setEditor(user);
 				user.getEpisodes().add(child);
 				
 				parent.getChildren().add(child);
@@ -349,6 +359,7 @@ public class InitDB {
 				DB.session.save(child);
 				DB.session.merge(parent);
 				DB.session.getTransaction().commit();
+				if (PRINT_EPISODES_ADDED) System.out.println("Added episode " + child.getId());
 			}
 		}
 	}
@@ -422,9 +433,12 @@ public class InitDB {
 				author = trimTo(in.nextLine(), 254);
 				String dateString = in.nextLine();
 				try {
-					ep.setDate(df.parse(dateString));
+					Date date = df.parse(dateString);
+					ep.setDate(date);
+					ep.setEditDate(date);
 				} catch (ParseException e) {
 					ep.setDate(badDate);
+					ep.setEditDate(badDate);
 					Strings.log("Bad header: " + id + " " + f.getAbsolutePath());
 				}
 			} catch (NoSuchElementException e) {
@@ -433,7 +447,10 @@ public class InitDB {
 				if (ep.getLink() == null) ep.setLink("(Empty)");
 				if (author == null) author = "(Empty)";
 				if (ep.getBody() == null) ep.setBody("");
-				if (ep.getDate() == null) ep.setDate(badDate);
+				if (ep.getDate() == null) {
+					ep.setDate(badDate);
+					ep.setEditDate(badDate);
+				}
 				Strings.log("(partially) empty episode: " + f.getName());
 				return new LegacyEpisodeContainer(ep, author);
 			}

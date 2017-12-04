@@ -7,10 +7,8 @@ import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Cookie;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import fb.Story;
@@ -36,7 +34,7 @@ public class GetStuff {
 	 * @return HTML welcome page
 	 */
 	@GET
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getRoot(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getWelcome(fbtoken)).build();
 	}
@@ -47,7 +45,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("get")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getGet() {
 		return Response.seeOther(createURI("/fb")).build();
 	}
@@ -61,7 +59,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("get/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response get(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 0, "0", fbtoken)).build();
 	}
@@ -75,7 +73,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("get/{id}/{settings}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response get(@PathParam("id") String id, @PathParam("settings") String settings, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 0, settings, fbtoken)).build();
 	}
@@ -89,7 +87,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getnewest/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getnewest(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 1, "0", fbtoken)).build();
 	}
@@ -103,7 +101,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getmostfirst/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getmostfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 2, "0", fbtoken)).build();
 	}
@@ -117,7 +115,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getleastfirst/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getleastfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 3, "0", fbtoken)).build();
 	}
@@ -131,7 +129,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getrandom/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response getrandom(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getHTML(id, 4, "0", fbtoken)).build();
 	}
@@ -145,7 +143,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getraw/{id}")
-	@Produces(MediaType.TEXT_PLAIN + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_PLAIN + "; charset=UTF-8")
 	public String getraw(@PathParam("id") String id) {
 		Episode ep;
 		try {
@@ -165,21 +163,21 @@ public class GetStuff {
 
 	@GET
 	@Path("recent")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response recent(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("days") String days) {
 		return Response.ok(Story.getRecents(fbtoken, days)).build();
 	}
 	
 	@GET
 	@Path("outline/{id}")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response outline(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id, @QueryParam("depth") String depth) {
 		return Response.ok(Story.getOutline(fbtoken, id, depth)).build();
 	}
 	
 	@GET
 	@Path("formatting")
-	@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
 	public Response formatting(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Strings.getFile("formatting.html", fbtoken)).build();
 	}

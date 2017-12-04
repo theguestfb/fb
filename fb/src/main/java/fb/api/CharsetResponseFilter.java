@@ -6,6 +6,11 @@ import javax.ws.rs.container.ContainerResponseFilter;
 
 import javax.ws.rs.core.MediaType;
 
+/**
+ * This filter ensures that all responses (which don't already have a defined charset (none of ours do)) use charset=utf-8
+ * @author lpreams
+ *
+ */
 public class CharsetResponseFilter implements ContainerResponseFilter {
     @Override
     public void filter(ContainerRequestContext request, ContainerResponseContext response) {

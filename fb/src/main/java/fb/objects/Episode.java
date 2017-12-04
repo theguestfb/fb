@@ -14,6 +14,9 @@ public class Episode {
 	public final boolean isLegacy;
 	public final String body;
 	public final Date date;
+	public final Date editDate;
+	public final String editorId;
+	public final String editorName;
 	public final int depth;
 	public final ArrayList<ChildEpisode> children;
 	public final String parentId;
@@ -25,6 +28,9 @@ public class Episode {
 		this.authorName = ep.getAuthor().getAuthor();
 		this.body = ep.getBody();
 		this.date = ep.getDate();
+		this.editDate = ep.getEditDate();
+		this.editorId = ep.getEditor().getId();
+		this.editorName = ep.getEditor().getAuthor();
 		this.isLegacy = ep.getAuthor().getEmail() == null;
 		this.depth = ep.getDepth();
 		this.children = new ArrayList<>();
@@ -43,6 +49,9 @@ public class Episode {
 		this.children = new ArrayList<>();
 		this.parentId = "";
 		this.depth = depth;
+		this.editDate = null;
+		this.editorId = "";
+		this.editorName = "";
 	}
 	public static class ChildEpisode {
 		public final String id;

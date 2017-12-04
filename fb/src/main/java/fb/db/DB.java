@@ -116,6 +116,8 @@ public class DB {
 			child.setParent(parent);
 			child.setDate(date);
 			child.setChildCount(1);
+			child.setEditDate(date);
+			child.setEditor(author);
 			
 			author.getEpisodes().add(child);
 		
@@ -158,11 +160,9 @@ public class DB {
 	 */
 	public static Episode addRootEp(String link, String title, String body, String authorId, Date date) throws DBException {
 		synchronized (dbLock) {
-			//DBEpisode parent = session.get(DBEpisode.class, id);
 			DBUser author = session.get(DBUser.class, authorId);
 			DBRootEpisodes roots = session.get(DBRootEpisodes.class, 1);
 
-			//if (parent == null) throw new DBException("Not found: " + id);
 			if (author == null) throw new DBException("Author does not exist");
 
 			DBEpisode child;
@@ -183,6 +183,8 @@ public class DB {
 			child.setParent(null);
 			child.setDate(date);
 			child.setChildCount(1);
+			child.setEditDate(date);
+			child.setEditor(author);
 			
 			author.getEpisodes().add(child);
 		
@@ -190,7 +192,6 @@ public class DB {
 			
 			roots.getRoots().add(child);
 			
-			//parent.getChildren().add(child);
 			
 			session.save(child);
 			session.merge(roots);
@@ -210,13 +211,17 @@ public class DB {
 	 * @param author new author of new episode
 	 * @throws DBException if id not found
 	 */
-	public static void modifyEp(String id, String link, String title, String body) throws DBException {
+	public static void modifyEp(String id, String link, String title, String body, String editorId) throws DBException {
 		synchronized (dbLock) {
 			DBEpisode ep = session.get(DBEpisode.class, id);
 			if (ep == null) throw new DBException("Not found: " + id);
+			DBUser editor = session.get(DBUser.class, editorId);
+			if (editor == null) throw new DBException("Editor not found: " + editorId);
 			ep.setTitle(title);
 			ep.setLink(link);
 			ep.setBody(body);
+			ep.setEditDate(new Date());
+			ep.setEditor(editor);
 			session.beginTransaction();
 			session.merge(ep);
 			session.getTransaction().commit();

@@ -109,6 +109,11 @@ public class Story {
 			String author = HtmlEscapers.htmlEscaper().escape(ep.authorName);
 			if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
 			
+			if (!ep.date.equals(ep.editDate)) {
+				String editHTML = "<br/>Episode last modified by <a href=/fb/user/" + ep.editorId + ">" + HtmlEscapers.htmlEscaper().escape(ep.editorName) + "</a> on " + HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.editDate));
+				author += editHTML;
+			}
+			
 			return Strings.getFile("story.html", token)
 					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
 					.replace("$BODY", formatBody(ep.body, set))
@@ -365,7 +370,7 @@ public class Story {
 		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
 				
 		try {
-			DB.modifyEp(id, link, title, body);
+			DB.modifyEp(id, link, title, body, user.id);
 		} catch (DBException e) {
 			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id));
 		}
