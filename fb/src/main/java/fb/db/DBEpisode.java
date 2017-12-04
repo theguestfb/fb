@@ -37,6 +37,7 @@ public class DBEpisode implements Serializable {
 	
 	private Date date;
 	
+	@ManyToOne
 	private DBUser editor;
 	
 	private Date editDate;

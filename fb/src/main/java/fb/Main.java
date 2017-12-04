@@ -32,12 +32,7 @@ public class Main {
 			runServer();
 			break;
 		case "init":
-			try {
-				InitDB.doImport();
-			} catch (DBException e) {
-				System.err.println("DBException: " + e.getMessage());
-				System.exit(2);
-			}
+			initDB();
 			break;
 		case "count":
 			InitDB.countDB();
@@ -52,6 +47,15 @@ public class Main {
 		System.err.println("USAGE: (run | init | count)");
 		System.err.println("If no option is specified, run is default");
 		System.exit(1);
+	}
+	
+	private static void initDB() {
+		try {
+			InitDB.doImport();
+		} catch (DBException e) {
+			System.err.println("DBException: " + e.getMessage());
+			System.exit(2);
+		}
 	}
 	
 	private static void runServer() {

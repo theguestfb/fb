@@ -109,9 +109,9 @@ public class Story {
 			String author = HtmlEscapers.htmlEscaper().escape(ep.authorName);
 			if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
 			
+			String editHTML = "";
 			if (!ep.date.equals(ep.editDate)) {
-				String editHTML = "<br/>Episode last modified by <a href=/fb/user/" + ep.editorId + ">" + HtmlEscapers.htmlEscaper().escape(ep.editorName) + "</a> on " + HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.editDate));
-				author += editHTML;
+				editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + HtmlEscapers.htmlEscaper().escape(ep.editorName) + "</a> on " + HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.editDate));
 			}
 			
 			return Strings.getFile("story.html", token)
@@ -120,7 +120,7 @@ public class Story {
 					.replace("$AUTHOR", author)
 					.replace("$PARENTID", (ep.parentId == null) ? ".." : HtmlEscapers.htmlEscaper().escape(ep.parentId))
 					.replace("$ID", id)
-					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.date)))
+					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.date)) + editHTML)
 					.replace("$MODIFY", modify)
 					.replace("$ADDEP", addEp)
 					.replace("$CHILDREN", sb.toString());

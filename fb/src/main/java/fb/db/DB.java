@@ -118,6 +118,7 @@ public class DB {
 			child.setChildCount(1);
 			child.setEditDate(date);
 			child.setEditor(author);
+			author.getEditors().add(child);
 			
 			author.getEpisodes().add(child);
 		
@@ -185,6 +186,7 @@ public class DB {
 			child.setChildCount(1);
 			child.setEditDate(date);
 			child.setEditor(author);
+			author.getEditors().add(child);
 			
 			author.getEpisodes().add(child);
 		
@@ -217,13 +219,18 @@ public class DB {
 			if (ep == null) throw new DBException("Not found: " + id);
 			DBUser editor = session.get(DBUser.class, editorId);
 			if (editor == null) throw new DBException("Editor not found: " + editorId);
+			DBUser oldEditor = ep.getEditor();
 			ep.setTitle(title);
 			ep.setLink(link);
 			ep.setBody(body);
 			ep.setEditDate(new Date());
 			ep.setEditor(editor);
+			editor.getEditors().add(ep);
+			oldEditor.getEditors().remove(ep);
 			session.beginTransaction();
 			session.merge(ep);
+			session.merge(oldEditor);
+			session.merge(editor);
 			session.getTransaction().commit();
 			Strings.log(String.format("Modified: <%s> %s", title, ep.getId()));
 		}

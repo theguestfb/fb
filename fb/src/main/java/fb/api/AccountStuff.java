@@ -75,8 +75,9 @@ public class AccountStuff {
 			return Response.ok(e.getMessage()).build();
 		}
 		NewCookie fbtoken = new NewCookie("fbtoken", token);
-		return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Successfully logged in")).build();
-		//return Response.seeOther(GetStuff.createURI("/fb")).cookie(fbtoken).build();
+		System.out.println("Login success: " + email + " " + token);
+		//return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Successfully logged in")).build();
+		return Response.seeOther(GetStuff.createURI("/fb")).cookie(fbtoken).build();
 	}
 	
 	/**

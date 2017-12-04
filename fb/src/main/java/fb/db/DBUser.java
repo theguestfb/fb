@@ -40,6 +40,9 @@ public class DBUser implements Serializable {
 	@OneToMany(mappedBy = "author")
 	private List<DBEpisode> episodes = new ArrayList<>();
 	
+	@OneToMany(mappedBy = "editor")
+	private List<DBEpisode> editors = new ArrayList<>();
+	
 	public DBEmail getEmail() {
 		return email;
 	}
@@ -86,6 +89,14 @@ public class DBUser implements Serializable {
 
 	public void setEpisodes(List<DBEpisode> episodes) {
 		this.episodes = episodes;
+	}
+
+	public List<DBEpisode> getEditors() {
+		return editors;
+	}
+
+	public void setEditors(List<DBEpisode> editors) {
+		this.editors = editors;
 	}
 
 	public byte getLevel() {

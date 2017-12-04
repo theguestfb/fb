@@ -120,19 +120,24 @@ public class Accounts {
 	 * @return HTML
 	 */
 	public static String getAccount(Cookie fbtoken) {
-		String token;
-		if (fbtoken==null) token = "asdf";
-		else token = fbtoken.getValue();
 		String notLoggedIn = "<a href=/fb/createaccount>Create account</a><br/><a href=/fb/login>Log in</a>";
+		if (fbtoken == null) return notLoggedIn;
+		String token = fbtoken.getValue();
+		
 		if (token == null) return notLoggedIn;
+		
 		if (token.length() == 0) return notLoggedIn;
+		
 		UserSession sesh = active.get(token);
 		if (sesh == null) return notLoggedIn;
+		
 		
 		User user;
 		try {
 			user = DB.getUser(sesh.userID);
+			System.out.println(token + ": " + user.author);
 		} catch (DBException e) {
+			System.out.println(token + " not logged in");
 			return notLoggedIn;
 		}
 		

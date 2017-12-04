@@ -106,7 +106,7 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		//readStory("yawyw", "2");
+		readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
@@ -187,6 +187,7 @@ public class InitDB {
 		newUser.getEpisodes().add(rootEp);
 		rootEp.setAuthor(newUser);
 		rootEp.setEditor(newUser);
+		newUser.getEditors().add(rootEp);
 		newUser.setAuthor(rootCont.author);
 		newUser.setPassword("disabled");
 		newUser.setBio("");
@@ -305,6 +306,7 @@ public class InitDB {
 				child.setBody("(Empty)");
 				child.setDate(badDate);
 				child.setEditor(user);
+				user.getEditors().add(child);
 				child.setEditDate(badDate);
 				user.getEpisodes().add(child);
 				user.setAuthor("(Empty)");
@@ -352,7 +354,9 @@ public class InitDB {
 				child.setParent(parent);
 				child.setAuthor(user);
 				child.setEditor(user);
+				user.getEditors().add(child);
 				user.getEpisodes().add(child);
+				user.getEditors().add(child);
 				
 				parent.getChildren().add(child);
 				DB.session.save(user);
