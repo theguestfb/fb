@@ -5,10 +5,10 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Random;
 
-//import org.h2.jdbcx.JdbcConnectionPool;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -17,7 +17,6 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import fb.Strings;
 import fb.objects.Episode;
-import fb.objects.EpisodeList;
 import fb.objects.User;
 
 public class DB {
@@ -266,45 +265,7 @@ public class DB {
 			return legacy.getNewId();
 		}
 	}
-	
-	/**
-	 * Retrieves recent episodes from the db
-	 * @return
-	 * @throws DBException wtf
-	 */
-	/*public static EpisodeList getRecents(int days) throws DBException {
-		synchronized(dbLock) {
-			ArrayList<Episode> list = new ArrayList<>();
-			
-			Calendar cal = Calendar.getInstance();
-			cal.add(Calendar.DAY_OF_MONTH, -days);
-			Date d = cal.getTime();
 
-			try {
-
-				ResultSet rs = con.prepareStatement(
-						"SELECT fbepisodes.id, fbepisodes.link, fbepisodes.date, fbepisodes.depth, fbepisodes.author_id, fbusers.author "
-						+ "FROM fbepisodes,fbusers "
-						+ "WHERE fbepisodes.author_id = fbusers.id AND fbepisodes.date > '" + Strings.sqlDateFormat(d) + "' "
-						+ "ORDER BY fbepisodes.date DESC").executeQuery();
-				
-				
-				
-				while(rs.next()) {
-					String id = rs.getString("id");
-					String link = rs.getString("link");
-					String author = rs.getString("author");
-					int depth = rs.getInt("depth");
-					Date date = new Date(rs.getTimestamp("date").getTime());
-					list.add(new Episode(id, link, author, date, depth));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				throw new DBException(e);
-			}
-			return new EpisodeList(list);
-		}
-	}*/
 	
 	/**
 	 * Get num most recent episodes of a particular story, or of all stories
@@ -313,7 +274,7 @@ public class DB {
 	 * @return
 	 * @throws DBException
 	 */
-	public static EpisodeList getRecents(int root, int num) throws DBException {
+	public static Episode[] getRecents(int root, int num) throws DBException {
 		synchronized(dbLock) {
 			ArrayList<Episode> list = new ArrayList<>();
 
@@ -342,11 +303,14 @@ public class DB {
 				e.printStackTrace();
 				throw new DBException(e);
 			}
-			return new EpisodeList(list);
+			//return new EpisodeList(list);
+			Episode[] arr = new Episode[list.size()];
+			arr = list.toArray(arr);
+			return arr;
 		}
 	}
 	
-	public static EpisodeList getOutline(String rootId, int maxDepth) throws DBException {
+	public static Episode[] getOutline(String rootId, int maxDepth) throws DBException {
 		synchronized(dbLock) {
 			ArrayList<Episode> list = new ArrayList<>();
 			
@@ -372,7 +336,35 @@ public class DB {
 				e.printStackTrace();
 				throw new DBException(e);
 			}
-			return new EpisodeList(list);
+			//return new EpisodeList(list);
+			Episode[] arr = new Episode[list.size()];
+			arr = list.toArray(arr);
+			return arr;
+		}
+	}
+	
+	public static Episode[] getPath(String id) throws DBException {
+		synchronized (dbLock) {
+			DBEpisode ep = DB.session.get(DBEpisode.class, id);
+			if (ep == null) throw new DBException("Not found: " + id);
+			ArrayList<Episode> episodeList;
+			
+			episodeList = new ArrayList<>(ep.getDepth());
+			while (ep != null && ep.getParent() != null && !ep.getParent().getId().equals(ep.getId())) {
+				episodeList.add(new Episode(ep));
+				ep = DB.session.get(DBEpisode.class, ep.getParent().getId());
+				//ep = ep.getParent();
+			}
+			System.out.println("Returning list");
+			if (ep != null) episodeList.add(new Episode(ep));
+			Collections.reverse(episodeList);
+			
+			
+			//return new EpisodeList(episodeList);
+			Episode[] arr = new Episode[episodeList.size()];
+			arr = episodeList.toArray(arr);
+			return arr;
+			
 		}
 	}
 	
@@ -381,11 +373,15 @@ public class DB {
 	 * @return
 	 * @throws DBException wtf
 	 */
-	public static EpisodeList getRoots() throws DBException {
+	public static Episode[] getRoots() throws DBException {
 		synchronized(dbLock) {
 			DBRootEpisodes roots = session.get(DBRootEpisodes.class, 1);
 			if (roots == null) throw new DBException("Recents not found (tell Phoenix if you see this, it should never happen)");
-			return new EpisodeList(roots);
+			//return new EpisodeList(roots);
+			
+			Episode[] arr = new Episode[roots.getRoots().size()];
+			for (int i=0; i<arr.length; ++i) arr[i] = new Episode(roots.getRoots().get(i));
+			return arr;
 		}
 	}
 	

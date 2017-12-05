@@ -31,6 +31,10 @@ run {
  	standardInput = System.in
 }
 
+tasks.withType(JavaExec) {
+    jvmArgs = ['-Xss16m']
+}
+
 dependencies {
 	
 	// Stuff required for embedded jax-rs (jersey, grizzly)

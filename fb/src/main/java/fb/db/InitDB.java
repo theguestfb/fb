@@ -20,7 +20,6 @@ import org.mindrot.jbcrypt.BCrypt;
 import fb.Comparators;
 import fb.Strings;
 import fb.db.DB.DBException;
-import fb.objects.Episode;
 
 /**
  * Run this class's main() (as a regular Java Application, not on tomcat) to
@@ -136,12 +135,25 @@ public class InitDB {
 		System.exit(0);
 	}
 	
-	private static void generateChildCounts() throws DBException {
-		for (Episode ep : DB.getRoots().episodes) {
+	private static ArrayList<String> rootIdList = new ArrayList<>();
+	
+	public static void generateChildCounts() throws DBException {
+		if (rootIdList.size() == 0) {
+			if (DB.session.get(DBEpisode.class,"4") != null) rootIdList.add("4");
+			if (DB.session.get(DBEpisode.class,"3") != null) rootIdList.add("3");
+			if (DB.session.get(DBEpisode.class,"1") != null) rootIdList.add("1");
+			if (DB.session.get(DBEpisode.class,"2") != null) rootIdList.add("2");
+		}
+		for (String rootId : rootIdList) {
+			DB.session.beginTransaction();
 			long start = System.nanoTime();
-			generateChildCounts(ep.id);
+			generateChildCounts(rootId);
 			long stop = System.nanoTime();
-			Strings.log("Generated child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + ep.id + " " + ep.link);
+			Strings.log("Generated child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + rootId);
+			start = System.nanoTime();
+			DB.session.getTransaction().commit();
+			stop = System.nanoTime();
+			Strings.log("Persisted child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + rootId);
 		}
 	}
 		
@@ -163,17 +175,22 @@ public class InitDB {
 		DBEpisode ep = DB.session.get(DBEpisode.class, id);
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
-		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=generateChildCounts(child.getId());
-		DB.session.beginTransaction();
+		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) {
+			int x = child.getChildCount();
+			if (x<1) x = generateChildCounts(child.getId());
+			sum+=x;
+		}
+		//DB.session.beginTransaction();
 		ep.setChildCount(sum);
 		DB.session.merge(ep);
-		DB.session.getTransaction().commit();
+		//DB.session.getTransaction().commit();
 		if (PRINT_EPISODES_ADDED) System.out.println("Generated child counts: " + id);
 		return sum;
 	}
 	
 	private static void readStory(String story, String rootId) {
 		Strings.log("Importing " + story);
+		rootIdList.add(rootId);
 		String dirPath = System.getProperty("user.home") + "/fbscrape/" + story + "/";
 		
 		DB.session.beginTransaction();

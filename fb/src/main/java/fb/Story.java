@@ -1,6 +1,7 @@
 package fb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -30,7 +31,6 @@ import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
 import fb.objects.Episode.ChildEpisode;
-import fb.objects.EpisodeList;
 import fb.objects.User;
 
 /**
@@ -72,7 +72,7 @@ public class Story {
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 			StringBuilder sb = new StringBuilder();
-			ArrayList<ChildEpisode> children = ep.children;
+			ArrayList<ChildEpisode> children = new ArrayList<>(Arrays.asList(ep.children));
 			switch (sort) {
 			case 0:
 			default:
@@ -127,7 +127,6 @@ public class Story {
 	}
 	
 	
-	
 	/**
 	 * Gets an list of recent episodes
 	 * 
@@ -151,7 +150,7 @@ public class Story {
 		} catch (NumberFormatException e) {
 			num = 25;
 		}
-		EpisodeList recents;
+		Episode[] recents;
 		try {
 			recents = DB.getRecents(root, num);
 		} catch (DBException e) {
@@ -159,14 +158,14 @@ public class Story {
 		}
 				
 		StringBuilder sb = new StringBuilder();
-		for (Episode child : recents.episodes) if (child != null){
+		for (Episode child : recents) if (child != null){
 			String story;
 			try {
 				story = "(" + DB.getEp(child.id.split("-")[0]).link + ")";
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
+			sb.append("<p><a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 	}
@@ -181,14 +180,14 @@ public class Story {
 		}
 		if (depth > 100) depth = 50;
 		else if (depth < 1) depth = 1;
-		EpisodeList outline;
+		Episode[] outline;
 		try {
 			if (DB.getEp(rootId) == null) return Strings.getFile("generic.html", token).replace("$EXTRA", "ID not found: " + rootId);
 			outline = DB.getOutline(rootId, depth);
 		} catch (DBException e) {
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Recents is broken, you should never see this, tell Phoenix");
 		}
-		ArrayList<Episode> list = outline.episodes;
+		ArrayList<Episode> list = new ArrayList<>(Arrays.asList(outline));
 		Collections.sort(list, Comparators.episodeKeyComparator);
 		int minDepth = list.get(0).depth;
 		StringBuilder sb = new StringBuilder();
@@ -200,13 +199,45 @@ public class Story {
 		return Strings.getFile("outline.html", token).replace("$ID", rootId).replace("$CHILDREN", sb.toString());
 	}
 	
+	public static String getPath(Cookie token, String id) {
+		Episode[] path;
+		try {
+			path = DB.getPath(id);
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", e.getMessage());
+		}
+		ArrayList<Episode> list = new ArrayList<>(Arrays.asList(path));
+		StringBuilder sb = new StringBuilder();
+		for (Episode child : list) if (child != null){
+			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a><br />\n");
+		}
+		return Strings.getFile("path.html", token).replace("$ID", id).replace("$CHILDREN", sb.toString());
+	}
+	
+	public static String getCompleteHTML(Cookie token, String id) {
+		Episode[] path;
+		try {
+			System.out.println("Getting episodes from DB");
+			path = DB.getPath(id);
+			System.out.println("Got episodes from DB");
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", e.getMessage());
+		}
+		StringBuilder sb = new StringBuilder();
+		for (Episode child : path) if (child != null){ 
+			sb.append(formatBody(child.body, 0) + "<hr/>\n");
+		}
+		
+		return Strings.getFile("completestory.html", token).replace("$TITLE", HtmlEscapers.htmlEscaper().escape(path[0].title)).replace("$BODY", sb.toString());
+	}
+	
 	/**
 	 * Gets an list of recent episodes
 	 * 
 	 * @return HTML recents
 	 */
 	public static String getWelcome(Cookie token) {
-		EpisodeList roots;
+		Episode[] roots;
 		try {
 			roots = DB.getRoots();
 		} catch (DBException e) {
@@ -214,8 +245,8 @@ public class Story {
 		}
 				
 		StringBuilder sb = new StringBuilder();
-		for (Episode ep : roots.episodes) {
-			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.children.size() + ")</h3>" + " <a href=/fb/recent/" + ep.id + ">" + ep.link + "'s recently added episodes</a> <a href=/fb/feed/" + ep.id + "><img width=20 height=20 src=/images/rss.png /></a><br/><br/>");
+		for (Episode ep : roots) {
+			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.count + ")</h3>" + "<a href=/fb/feed/" + ep.id + "><img width=20 height=20 src=/images/rss.png /></a>" + " <a href=/fb/recent/" + ep.id + ">" + ep.link + "'s recently added episodes</a> " + "<br/><br/>");
 		}
 		return Strings.getFile("welcome.html", token).replace("$EPISODES", sb.toString());
 		

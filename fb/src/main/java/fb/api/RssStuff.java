@@ -27,7 +27,6 @@ import fb.Strings;
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
-import fb.objects.EpisodeList;
 
 @Path("")
 public class RssStuff {
@@ -80,7 +79,7 @@ public class RssStuff {
 		TreeMap<Integer,String> list = new TreeMap<>();
 		list.put(0, generate(0));
 		try {
-			for (Episode root : DB.getRoots().episodes) {
+			for (Episode root : DB.getRoots()) {
 				int id = Integer.parseInt(root.id);
 				list.put(id, generate(id));
 			}
@@ -103,14 +102,14 @@ public class RssStuff {
 
 		final ArrayList<SyndEntry> entries = new ArrayList<>();
 
-		EpisodeList eps;
+		Episode[] eps;
 		try {
 			eps = DB.getRecents(story, 25);
 		} catch (DBException e) {
 			Strings.log("Couldn't get recents for RSS");
 			return feedToString(feed);
 		}
-		for (Episode ep : eps.episodes) {
+		for (Episode ep : eps) {
 			SyndEntry entry = new SyndEntryImpl();
 			entry.setTitle(HtmlEscapers.htmlEscaper().escape(ep.link));
 			entry.setLink("https://" + Strings.DOMAIN + "/fb/get/" + ep.id);
