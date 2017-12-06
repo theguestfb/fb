@@ -17,7 +17,7 @@ import fb.Story.EpisodeException;
 import fb.objects.User;
 import fb.util.Strings;
 
-@Path("")
+@Path("fb")
 public class AdminStuff {
 	
 	@GET

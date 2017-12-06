@@ -28,7 +28,7 @@ import fb.db.DB.DBException;
 import fb.objects.Episode;
 import fb.util.Strings;
 
-@Path("")
+@Path("fb")
 public class RssStuff {
 	
 	@GET

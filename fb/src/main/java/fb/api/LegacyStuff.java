@@ -11,7 +11,7 @@ import javax.ws.rs.core.Response;
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.util.Strings;
-@Path("")
+@Path("fb")
 public class LegacyStuff {
 	/**
 	 * Gets a legacy episode by its legacy id

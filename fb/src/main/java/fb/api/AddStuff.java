@@ -13,7 +13,7 @@ import fb.Story;
 import fb.Story.EpisodeException;
 import fb.util.Strings;
 
-@Path("")
+@Path("fb")
 public class AddStuff {
 	/**
 	 * Returns the form for adding new episodes
