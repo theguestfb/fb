@@ -1,4 +1,5 @@
 package fb.api;
+import static fb.util.Strings.escape;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -12,7 +13,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
-import com.google.common.html.HtmlEscapers;
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndContentImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
@@ -23,10 +23,10 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedOutput;
 
 import fb.Story;
-import fb.Strings;
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
+import fb.util.Strings;
 
 @Path("")
 public class RssStuff {
@@ -111,15 +111,15 @@ public class RssStuff {
 		}
 		for (Episode ep : eps) {
 			SyndEntry entry = new SyndEntryImpl();
-			entry.setTitle(HtmlEscapers.htmlEscaper().escape(ep.link));
+			entry.setTitle(escape(ep.link));
 			entry.setLink("https://" + Strings.DOMAIN + "/fb/get/" + ep.id);
 			entry.setPublishedDate(ep.date);
-			entry.setAuthor(HtmlEscapers.htmlEscaper().escape(ep.authorName));
+			entry.setAuthor(escape(ep.authorName));
 			
 			SyndContent desc = new SyndContentImpl();
 			desc.setType("text/html");
 			StringBuilder body = new StringBuilder();
-			body.append("<h1>" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</h1>\n");
+			body.append("<h1>" + escape(ep.title) + "</h1>\n");
 			body.append(Story.formatBody(ep.body, 0));
 			desc.setValue(body.toString());
 			entry.setDescription(desc);

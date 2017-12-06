@@ -14,8 +14,8 @@ import fb.Accounts;
 import fb.Accounts.FBLoginException;
 import fb.Story;
 import fb.Story.EpisodeException;
-import fb.Strings;
 import fb.objects.User;
+import fb.util.Strings;
 
 @Path("")
 public class AdminStuff {

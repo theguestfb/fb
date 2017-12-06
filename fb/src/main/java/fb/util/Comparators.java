@@ -1,4 +1,4 @@
-package fb;
+package fb.util;
 
 import java.util.Comparator;
 

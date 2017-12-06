@@ -1,5 +1,7 @@
 package fb;
 
+import static fb.util.Strings.escape;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,7 +26,6 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.html.HtmlEscapers;
 
 import fb.Accounts.FBLoginException;
 import fb.db.DB;
@@ -32,6 +33,8 @@ import fb.db.DB.DBException;
 import fb.objects.Episode;
 import fb.objects.Episode.ChildEpisode;
 import fb.objects.User;
+import fb.util.Comparators;
+import fb.util.Strings;
 
 /**
  * Contains the actual logic that controls how the site works
@@ -92,7 +95,7 @@ public class Story {
 				break;
 			}
 			for (ChildEpisode child : children) {
-				sb.append("<p><a href=" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
+				sb.append("<p><a href=" + child.id + ">" + escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
 			}
 			
 			String addEp, modify="";			
@@ -106,21 +109,21 @@ public class Story {
 				addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
 			}
 			
-			String author = HtmlEscapers.htmlEscaper().escape(ep.authorName);
+			String author = escape(ep.authorName);
 			if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
 			
 			String editHTML = "";
 			if (!ep.date.equals(ep.editDate)) {
-				editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + HtmlEscapers.htmlEscaper().escape(ep.editorName) + "</a> on " + HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.editDate));
+				editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + escape(ep.editorName) + "</a> on " + escape(Strings.outputDateFormat(ep.editDate));
 			}
 			
 			return Strings.getFile("story.html", token)
-					.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
+					.replace("$TITLE", escape(ep.title))
 					.replace("$BODY", formatBody(ep.body, set))
 					.replace("$AUTHOR", author)
-					.replace("$PARENTID", (ep.parentId == null) ? ".." : HtmlEscapers.htmlEscaper().escape(ep.parentId))
+					.replace("$PARENTID", (ep.parentId == null) ? ".." : escape(ep.parentId))
 					.replace("$ID", id)
-					.replace("$DATE", HtmlEscapers.htmlEscaper().escape(Strings.outputDateFormat(ep.date)) + editHTML)
+					.replace("$DATE", escape(Strings.outputDateFormat(ep.date)) + editHTML)
 					.replace("$MODIFY", modify)
 					.replace("$ADDEP", addEp)
 					.replace("$CHILDREN", sb.toString());
@@ -165,7 +168,7 @@ public class Story {
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a>" + " by " + HtmlEscapers.htmlEscaper().escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
+			sb.append("<p><a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a>" + " by " + escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 	}
@@ -194,7 +197,7 @@ public class Story {
 		for (Episode child : list) if (child != null){
 			//sb.append("<p>");
 			for (int i=minDepth; i<child.depth; ++i) sb.append("&nbsp;");
-			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a><br />\n");
+			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a><br />\n");
 		}
 		return Strings.getFile("outline.html", token).replace("$ID", rootId).replace("$CHILDREN", sb.toString());
 	}
@@ -209,7 +212,7 @@ public class Story {
 		ArrayList<Episode> list = new ArrayList<>(Arrays.asList(path));
 		StringBuilder sb = new StringBuilder();
 		for (Episode child : list) if (child != null){
-			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + HtmlEscapers.htmlEscaper().escape(child.link) + "</a><br />\n");
+			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a><br />\n");
 		}
 		return Strings.getFile("path.html", token).replace("$ID", id).replace("$CHILDREN", sb.toString());
 	}
@@ -228,7 +231,7 @@ public class Story {
 			sb.append(formatBody(child.body, 0) + "<hr/>\n");
 		}
 		
-		return Strings.getFile("completestory.html", token).replace("$TITLE", HtmlEscapers.htmlEscaper().escape(path[0].title)).replace("$BODY", sb.toString());
+		return Strings.getFile("completestory.html", token).replace("$TITLE", escape(path[0].title)).replace("$BODY", sb.toString());
 	}
 	
 	/**
@@ -373,9 +376,9 @@ public class Story {
 		}
 		if (!user.id.equals(ep.authorId) && user.level<10) return Strings.getFile("generic.html",token).replace("$EXTRA", "You can only edit episodes that you wrote");
 		return Strings.getFile("modifyform.html", token)
-				.replace("$TITLE", HtmlEscapers.htmlEscaper().escape(ep.title))
-				.replace("$BODY", HtmlEscapers.htmlEscaper().escape(ep.body))
-				.replace("$LINK", HtmlEscapers.htmlEscaper().escape(ep.link))
+				.replace("$TITLE", escape(ep.title))
+				.replace("$BODY", escape(ep.body))
+				.replace("$LINK", escape(ep.link))
 				.replace("$ID", id);
 	}
 	
@@ -463,7 +466,7 @@ public class Story {
 	 */
 	public static String formatBody(String body, int settings) {
 		String ret = body;
-		ret = HtmlEscapers.htmlEscaper().escape(ret);
+		ret = escape(ret);
 		
 		HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
 		

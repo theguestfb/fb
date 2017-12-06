@@ -1,5 +1,7 @@
 package fb;
 
+import static fb.util.Strings.escape;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
@@ -18,12 +20,11 @@ import javax.ws.rs.core.Cookie;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.mindrot.jbcrypt.BCrypt;
 
-import com.google.common.html.HtmlEscapers;
-
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
 import fb.objects.User;
+import fb.util.Strings;
 
 public class Accounts {
 	private static ConcurrentHashMap<String,UserSession> active = new ConcurrentHashMap<>(); //<loginToken>, user>
@@ -141,7 +142,7 @@ public class Accounts {
 			return notLoggedIn;
 		}
 		
-		String response = "Logged in as <a href=/fb/useraccount>" + HtmlEscapers.htmlEscaper().escape(user.author) + "</a><br/><a href=/fb/logout>Log out</a>";
+		String response = "Logged in as <a href=/fb/useraccount>" + escape(user.author) + "</a><br/><a href=/fb/logout>Log out</a>";
 		if (user.level>=(byte)100) response +="<br/><a href=/fb/admin>Admin stuff</a>";
 		
 		return response;
@@ -176,7 +177,7 @@ public class Accounts {
 				story = "(The Future of Gaming)";
 				break;
 			}
-			sb.append("<a href=/fb/get/" + ep.id + ">" + HtmlEscapers.htmlEscaper().escape(ep.title) + "</a> " + Strings.outputDateFormat(ep.date) + " " + story + "<br/>");
+			sb.append("<a href=/fb/get/" + ep.id + ">" + escape(ep.title) + "</a> " + Strings.outputDateFormat(ep.date) + " " + story + "<br/>");
 		}
 		String bio = Story.formatBody(user.bio, 0);
 		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$BODY", bio).replace("$EPISODES", sb.toString());

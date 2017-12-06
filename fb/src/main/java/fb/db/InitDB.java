@@ -17,9 +17,9 @@ import java.util.TreeMap;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import fb.Comparators;
-import fb.Strings;
 import fb.db.DB.DBException;
+import fb.util.Comparators;
+import fb.util.Strings;
 
 /**
  * Run this class's main() (as a regular Java Application, not on tomcat) to
@@ -59,7 +59,9 @@ public class InitDB {
 			start = System.nanoTime();
 	}
 	
+
 	public static void doImport() throws DBException  {
+		
 		
 		try (Scanner in = new Scanner(System.in)) {
 			
@@ -86,7 +88,6 @@ public class InitDB {
 			String phoenixID = DB.addUser("root@carolinaphoenix.net", BCrypt.hashpw(in.nextLine(), BCrypt.gensalt(10)), "Phoenix");
 			DB.changeUserLevel(phoenixID, (byte)100);
 		}
-		
 				
 		Strings.log("Starting import");
 		long stop, start=System.nanoTime();

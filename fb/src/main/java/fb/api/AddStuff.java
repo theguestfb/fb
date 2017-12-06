@@ -11,7 +11,7 @@ import javax.ws.rs.core.Response;
 
 import fb.Story;
 import fb.Story.EpisodeException;
-import fb.Strings;
+import fb.util.Strings;
 
 @Path("")
 public class AddStuff {

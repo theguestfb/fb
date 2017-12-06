@@ -15,9 +15,9 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.mindrot.jbcrypt.BCrypt;
 
-import fb.Strings;
 import fb.objects.Episode;
 import fb.objects.User;
+import fb.util.Strings;
 
 public class DB {
 	

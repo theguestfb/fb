@@ -1,4 +1,4 @@
-package fb;
+package fb.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -34,8 +34,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.core.Cookie;
 
+import com.google.common.escape.Escaper;
+import com.google.common.html.HtmlEscapers;
 import com.google.gson.Gson;
 
+import fb.Accounts;
 import fb.Accounts.FBLoginException;
 import fb.json.JsonCaptchaResponse;
 
@@ -52,6 +55,11 @@ public class Strings {
 	public static String DOMAIN = readFile(BASE_DIR + "/domain.txt").trim();
 	public static String SMTP_PASSWORD = readFile(BASE_DIR + "/smtp_password.txt");
 	public static String RECAPTCHA_SECRET = readFile(BASE_DIR + "/recaptcha_secret.txt");
+	
+	private static Escaper htmlEscaper = HtmlEscapers.htmlEscaper();
+	public static String escape(String string) {
+		return htmlEscaper.escape(string);
+	}
 	
 	public static String getFile(String name, Cookie fbtoken) {
 		String theme;
