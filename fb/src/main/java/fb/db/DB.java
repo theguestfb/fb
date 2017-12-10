@@ -1,9 +1,5 @@
 package fb.db;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,7 +30,7 @@ public class DB {
 	
 	private static final SessionFactory sessionFactory;
 	static final Session session;
-	private static final Connection con;
+	//private static final Connection con;
 	private static Object dbLock = new Object();
 	static {
 		synchronized (dbLock) {
@@ -47,23 +43,23 @@ public class DB {
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
 			session = sessionFactory.openSession();
-			try { // I wish this didn't have to be a separate connection, but idk how to do it differently without using HQL instead of SQL, which I don't care to learn
+			/*try { // I wish this didn't have to be a separate connection, but idk how to do it differently without using HQL instead of SQL, which I don't care to learn
 				con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/fictionbranches", "fictionbranches", "");
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
-			}
+			}*/
 		}
 	}
 	
 	public static void closeSession() {
 		session.close();
 		sessionFactory.close();
-		try {
+		/*try {
 			con.close();
 			
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		}
+		}*/
 	}
 	
 	public static class DBException extends Exception {
@@ -334,40 +330,33 @@ public class DB {
 	
 	/**
 	 * Get num most recent episodes of a particular story, or of all stories
-	 * @param root root id for story, or 0 to get all stories
+	 * @param rootId root id for story, or 0 to get all stories
 	 * @param num number of episodes to get
 	 * @return
 	 * @throws DBException
 	 */
-	public static Episode[] getRecents(int root, int num) throws DBException {
+	public static Episode[] getRecents(int rootId, int num) throws DBException {
 		synchronized(dbLock) {
 			ArrayList<Episode> list = new ArrayList<>();
 
-			if (root != 0) DB.getEp(""+root);
+			if (rootId != 0) DB.getEp(""+rootId);
 			
-			try {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
+			Root<DBEpisode> root = query.from(DBEpisode.class);
 
-				ResultSet rs = con.prepareStatement(
-						"SELECT fbepisodes.id, fbepisodes.link, fbepisodes.date, fbepisodes.depth, fbepisodes.author_id, fbusers.author "
-						+ "FROM fbepisodes,fbusers "
-						+ "WHERE fbepisodes.author_id = fbusers.id " + ((root>0)?("AND " + "(fbepisodes.id LIKE '" + root + "-%' OR fbepisodes.id = '" + root + "' )"):"")
-						+ "ORDER BY fbepisodes.date DESC " 
-						+ "LIMIT " + num + "").executeQuery();
-				
-				
-				
-				while(rs.next()) {
-					String id = rs.getString("id");
-					String link = rs.getString("link");
-					String author = rs.getString("author");
-					int depth = rs.getInt("depth");
-					Date date = new Date(rs.getTimestamp("date").getTime());
-					list.add(new Episode(id, link, author, date, depth));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				throw new DBException(e);
+			query.select(root).orderBy(cb.desc(root.get("date")));
+			
+			if (rootId != 0) {
+				Predicate idPredicate = cb.or(
+						cb.like(root.get("id"), rootId + "-%"), 
+						cb.equal(root.get("id"), rootId+""));
+				query = query.where(idPredicate);
 			}
+			
+			List<DBEpisode> result = session.createQuery(query).setMaxResults(num).list();
+			for (DBEpisode ep : result) list.add(new Episode(ep));
+			
 			//return new EpisodeList(list);
 			Episode[] arr = new Episode[list.size()];
 			arr = list.toArray(arr);

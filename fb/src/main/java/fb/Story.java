@@ -229,7 +229,7 @@ public class Story {
 				
 		StringBuilder sb = new StringBuilder();
 		for (Episode ep : roots) {
-			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.count + ")</h3>" + "<a href=/fb/feed/" + ep.id + "><img width=20 height=20 src=/images/rss.png /></a>" + " <a href=/fb/recent/" + ep.id + ">" + ep.link + "'s recently added episodes</a> " + "<br/><br/>");
+			sb.append("<h3><a href=/fb/get/" + ep.id + ">" + ep.link + "</a> (" + ep.count + ")</h3>" + "<a href=/fb/feed/" + ep.id + "><img width=20 height=20 src=/images/rss.png title=\"RSS feed for " + ep.link + "\" /></a>" + " <a href=/fb/recent/" + ep.id + ">" + ep.link + "'s recently added episodes</a> " + "<br/><br/>");
 		}
 		return Strings.getFile("welcome.html", token).replace("$EPISODES", sb.toString());
 		
