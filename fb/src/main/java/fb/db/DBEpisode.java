@@ -1,12 +1,13 @@
 package fb.db;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -15,15 +16,17 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name="fbepisodes")
-public class DBEpisode implements Serializable {
+public class DBEpisode {
 	
-	/*****/
-	private static final long serialVersionUID = 1653241208781785580L;
-
 	@Id
-	@Column( length = 4096 )
+	@GeneratedValue(strategy=GenerationType.AUTO)
+	private long generatedId;
+	
+	@Column(columnDefinition = "text")
 	private String id;
-		
+			
+	private String legacyId = null;
+	
 	private String title;
 	
 	private String link;
@@ -54,20 +57,29 @@ public class DBEpisode implements Serializable {
 	// The following constructor, getters, and setters are required for JPA persistence
 	public DBEpisode() {} 
 	
-	/*public int getGeneratedId() {
+	public long getGeneratedId() {
 		return generatedId;
 	}
-	
-	public void setGeneratedId(int generatedId) {
+
+	public void setGeneratedId(long generatedId) {
 		this.generatedId = generatedId;
-	}*/
-	
+	}
+
 	public String getId() {
 		return id;
 	}
 	public void setId(String id) {
 		this.id = id;
 	}
+
+	public String getLegacyId() {
+		return legacyId;
+	}
+
+	public void setLegacyId(String legacyId) {
+		this.legacyId = legacyId;
+	}
+
 	public String getTitle() {
 		return title;
 	}

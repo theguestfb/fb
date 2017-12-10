@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.TreeMap;
+import java.util.HashMap;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,6 +35,8 @@ public class RssStuff {
 	@Path("feed")
 	@Produces("application/rss+xml")
 	public Response getFeed() {
+		String ret = feeds.get(0);
+		if (ret == null || ret.length() == 0) return Response.ok(generateEmpty()).build();
 		return Response.ok(feeds.get(0)).build();
 	}
 	
@@ -48,22 +50,20 @@ public class RssStuff {
 		} catch (NumberFormatException e) {
 			return getFeed();
 		}
-		try {
-			return Response.ok(feeds.get(story)).build();
-		} catch (IndexOutOfBoundsException e) {
-			return getFeed();
-		}
+		String ret = feeds.get(story);
+		if (ret == null || ret.length() == 0) return Response.ok(generateEmpty()).build();
+		return Response.ok(feeds.get(story)).build();
 	}
 
-	private static TreeMap<Integer,String> feeds;
-	
+	private static HashMap<Integer,String> feeds;
 	static {
 		updateFeeds();
 		Thread t = new Thread() {
 			public void run() {
+				final long sleepTime = 1000*60*60;
 				while (true) {
 					try {
-						Thread.sleep(1000*60*60);
+						Thread.sleep(sleepTime);
 						updateFeeds();
 					} catch (InterruptedException e) {
 						Strings.log("Feed updater thread interrupted");
@@ -76,7 +76,7 @@ public class RssStuff {
 	}
 	
 	private static void updateFeeds() {
-		TreeMap<Integer,String> list = new TreeMap<>();
+		HashMap<Integer,String> list = new HashMap<>();
 		list.put(0, generate(0));
 		try {
 			for (Episode root : DB.getRoots()) {
@@ -99,9 +99,7 @@ public class RssStuff {
 		feed.setTitle("Fiction Branches");
 		feed.setLink("https://" + Strings.DOMAIN);
 		feed.setDescription("Fiction Branches is an online software engine which allows the production of multi-plotted stories.");
-
 		final ArrayList<SyndEntry> entries = new ArrayList<>();
-
 		Episode[] eps;
 		try {
 			eps = DB.getRecents(story, 25);
@@ -120,7 +118,7 @@ public class RssStuff {
 			desc.setType("text/html");
 			StringBuilder body = new StringBuilder();
 			body.append("<h1>" + escape(ep.title) + "</h1>\n");
-			body.append(Story.formatBody(ep.body, 0));
+			body.append(Story.formatBody(ep.body));
 			desc.setValue(body.toString());
 			entry.setDescription(desc);
 			entries.add(entry);
@@ -131,6 +129,19 @@ public class RssStuff {
 		return feedToString(feed);
 		
 	}
+	
+	private static String generateEmpty() {
+		final SyndFeed feed = new SyndFeedImpl();
+		feed.setFeedType("rss_2.0");
+		feed.setTitle("Fiction Branches");
+		feed.setLink("https://" + Strings.DOMAIN);
+		feed.setDescription("Fiction Branches is an online software engine which allows the production of multi-plotted stories.");
+		final ArrayList<SyndEntry> entries = new ArrayList<>();
+		feed.setEntries(entries);
+		return feedToString(feed);
+		
+	}
+	
 	private static String feedToString(SyndFeed feed) {
 		Writer writer = new StringWriter();
 		try {

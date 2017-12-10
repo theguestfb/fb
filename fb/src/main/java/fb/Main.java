@@ -7,7 +7,7 @@ import org.glassfish.jersey.simple.SimpleContainerFactory;
 
 import fb.api.AccountStuff;
 import fb.api.AddStuff;
-import fb.api.AdminStuff; 
+import fb.api.AdminStuff;
 import fb.api.CharsetResponseFilter;
 import fb.api.GetStuff;
 import fb.api.LegacyStuff;
@@ -33,6 +33,31 @@ public class Main {
 			break;
 		case "count":
 			InitDB.countDB();
+			break;
+		case "export":
+			try {
+				System.out.println("Exporting");
+				InitDB.exportTemp();
+				System.out.println("Done exporting");
+				DB.closeSession();
+				System.out.println("Goodbye");
+				System.exit(0);
+			} catch (DBException e) {
+				throw new RuntimeException(e);
+			}
+			break;
+		case "import":
+			try {
+				System.out.println("Importing");
+				InitDB.importTemp();
+				InitDB.generateChildCounts();
+				System.out.println("Done importing");
+				DB.closeSession();
+				System.out.println("Goodbye");
+				System.exit(0);
+			} catch (DBException e) {
+				throw new RuntimeException(e);
+			}
 			break;
 		case "generate":
 			try {

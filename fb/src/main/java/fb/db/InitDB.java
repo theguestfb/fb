@@ -1,13 +1,17 @@
 package fb.db;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
@@ -17,7 +21,11 @@ import java.util.TreeMap;
 
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.google.gson.Gson;
+
 import fb.db.DB.DBException;
+import fb.json.TempUser;
+import fb.json.TempUser.TempEpisode;
 import fb.util.Comparators;
 import fb.util.Strings;
 
@@ -71,17 +79,13 @@ public class InitDB {
 			DB.session.beginTransaction();
 
 			DBUser user = new DBUser();
-			DBEmail dbemail = new DBEmail();
-			dbemail.setEmail("admin@fictionbranches.net");
+			user.setEmail("admin@fictionbranches.net");
 			user.setId(DB.ROOT_ID);
 			user.setLevel((byte)100);
 			user.setAuthor("FB Admin");
 			user.setPassword(BCrypt.hashpw(rootpw, BCrypt.gensalt(10)));
-			user.setEmail(dbemail);
 			user.setBio("Fiction Branches Admin Account");
-			dbemail.setUser(user);
 			DB.session.save(user);
-			DB.session.save(dbemail);
 			DB.session.getTransaction().commit();
 									
 			System.out.println("enter phoenix password:");
@@ -111,39 +115,125 @@ public class InitDB {
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
+		start = System.nanoTime();
+		System.out.println("Adding temp users/episodes");
+		importTemp();
+		stop = System.nanoTime();
+		Strings.log("finished temp import: " + (((double)(stop-start))/1000000000.0));
 		
-		{
-			// Roots HAS TO be initialized like this for it to work, otherwise null pointers will happen!!
-			Strings.log("Initializing roots");
-			DBRootEpisodes roots = new DBRootEpisodes();
-			roots.setId(1);
-			
-			for (int i=1; i<=4; ++i) {
-				DBEpisode ep = DB.session.get(DBEpisode.class, ""+i);
-				if (ep != null) roots.getRoots().add(ep);
-			}
-			DB.session.beginTransaction();
-			DB.session.save(roots);
-			DB.session.getTransaction().commit();
-			Strings.log("Added roots. Generating child counts");
-			
-			generateChildCounts();
+		generateChildCounts();
 		
-		}
 		
 		DB.closeSession();
 		Strings.log("Fin");
 		System.exit(0);
 	}
 	
+	public static void exportTemp() throws DBException {
+		String dirPath = System.getProperty("user.home") + "/fbscrape/temp/";
+		for (TempUser tempUser : DB.getTempUsers()) {
+			String json = new Gson().toJson(tempUser);
+			try (BufferedWriter out = new BufferedWriter(new FileWriter(dirPath + tempUser.getId()))) {
+				out.write(json);
+				out.flush();
+			} catch (IOException e) {
+				System.out.println("Error writing to file " + dirPath + tempUser.getId());
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
+	public static void importTemp() throws DBException {
+		String dirPath = System.getProperty("user.home") + "/fbscrape/temp/";
+		if (!(new File(dirPath).exists())) {
+			System.out.println("Temp directory not found: " + dirPath);
+			return;
+		} else if (!(new File(dirPath).isDirectory())) {
+			System.out.println("Temp exists but is not a directory: " + dirPath);
+			return;
+		}
+		ArrayList<TempUser.TempEpisode> episodes = new ArrayList<>();
+		
+		for (File f : new File(dirPath).listFiles()) {
+			String json = Strings.readFile(f);
+			
+			TempUser tempUser = new Gson().fromJson(json, TempUser.class);
+			String userId;
+			if (DB.emailInUse(tempUser.getEmail())) userId = DB.getUserByEmail(tempUser.getEmail()).id;
+			else userId = DB.addUser(tempUser.getEmail(), tempUser.getHashedPassword(), tempUser.getAuthor());
+
+			DBUser user = DB.session.get(DBUser.class, userId);
+			user.setBio(tempUser.getBio());
+			user.setLevel(tempUser.getLevel());
+			user.setTheme(tempUser.getTheme());
+			DB.session.beginTransaction();
+			DB.session.merge(user);
+			DB.session.getTransaction().commit();
+			
+			for (TempUser.TempEpisode tempEp : tempUser.getEpisodes()) {
+				tempEp.setAuthorId(userId);
+				episodes.add(tempEp);
+			}
+		}
+		
+		Collections.sort(episodes, new Comparator<TempUser.TempEpisode>() {
+			@Override
+			public int compare(TempEpisode a, TempEpisode b) {
+				return Comparators.keyStringComparator.compare(a.getId(), b.getId());
+			}
+		});
+		
+		for (TempUser.TempEpisode tempEp : episodes) {
+			boolean skipEp;
+			try {
+				DB.getEp(tempEp.getId());
+				skipEp = true;
+			} catch (DBException e) {
+				System.out.println("Skipping existing tempEp: " + tempEp.getId());
+				skipEp = false;
+			}
+			if (skipEp) continue;
+			DBUser user = DB.getUserById(tempEp.getAuthorId());
+			DBEpisode ep = new DBEpisode();
+			System.out.println("Adding temp ep: " + tempEp.getId());
+			DBEpisode parent;
+			try {
+				String parentId = getParentId(tempEp.getId());
+				parent = DB.getEpById(parentId);
+			} catch (StringIndexOutOfBoundsException e) {
+				parent = ep;
+			}
+			ep.setBody(tempEp.getBody());
+			ep.setChildCount(0);
+			ep.setDate(tempEp.getDate());
+			ep.setEditDate(tempEp.getEditDate());
+			ep.setEditor(user);
+			ep.setId(tempEp.getId());
+			ep.setLegacyId(null);
+			ep.setLink(tempEp.getLink());
+			ep.setTitle(tempEp.getTitle());
+			ep.setParent(parent);
+			parent.getChildren().add(ep);
+			ep.setAuthor(user);
+			ep.setChildren(new ArrayList<DBEpisode>());
+			ep.setDepth(tempEp.getDepth());
+			user.getEpisodes().add(ep);
+			DB.session.beginTransaction();
+			DB.session.save(ep);
+			DB.session.merge(parent);
+			DB.session.merge(user);
+			DB.session.getTransaction().commit();
+		}
+	}
+	
 	private static ArrayList<String> rootIdList = new ArrayList<>();
 	
 	public static void generateChildCounts() throws DBException {
 		if (rootIdList.size() == 0) {
-			if (DB.session.get(DBEpisode.class,"4") != null) rootIdList.add("4");
-			if (DB.session.get(DBEpisode.class,"3") != null) rootIdList.add("3");
-			if (DB.session.get(DBEpisode.class,"1") != null) rootIdList.add("1");
-			if (DB.session.get(DBEpisode.class,"2") != null) rootIdList.add("2");
+			if (DB.getEpById("4") != null) rootIdList.add("4");
+			if (DB.getEpById("3") != null) rootIdList.add("3");
+			if (DB.getEpById("1") != null) rootIdList.add("1");
+			if (DB.getEpById("2") != null) rootIdList.add("2");
 		}
 		for (String rootId : rootIdList) {
 			DB.session.beginTransaction();
@@ -165,7 +255,12 @@ public class InitDB {
 	 * @throws IOException 
 	 */
 	static int count(String id) {
-		DBEpisode ep = DB.session.get(DBEpisode.class, id);
+		DBEpisode ep;
+		try {
+			ep = DB.getEpById( id);
+		} catch (DBException e) {
+			throw new RuntimeException(e);
+		}
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
@@ -173,12 +268,16 @@ public class InitDB {
 	}
 	
 	private static int generateChildCounts(String id) {
-		DBEpisode ep = DB.session.get(DBEpisode.class, id);
+		DBEpisode ep;
+		try {
+			ep = DB.getEpById(id);
+		} catch (DBException e) {
+			throw new RuntimeException(e);
+		}
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) {
-			int x = child.getChildCount();
-			if (x<1) x = generateChildCounts(child.getId());
+			int x = generateChildCounts(child.getId());
 			sum+=x;
 		}
 		//DB.session.beginTransaction();
@@ -245,7 +344,7 @@ public class InitDB {
 		index.close();
 		if (!passed) System.exit(1);
 		
-		Thread legacyThread = new Thread() {
+		/*Thread legacyThread = new Thread() {
 			public void run() {
 				Strings.log("Persisting legacy IDs for " + story);
 				for (String newId : map.keySet()) {
@@ -260,7 +359,7 @@ public class InitDB {
 				}
 			}
 		};
-		legacyThread.start();
+		legacyThread.start();*/
 		
 		
 		Strings.log("Finding missing eps for " + story); 
@@ -297,13 +396,13 @@ public class InitDB {
 			missingEpisodes.addAll(newMissingEpisodess);
 		}
 		
-		Strings.log("Done finding missing eps for " + story + ", waiting for legacy persistence to finish"); 
-		try {
+		Strings.log("Done finding missing eps for " + story); 
+		/*try {
 			legacyThread.join();
 		} catch (InterruptedException e) {
 			Strings.log("Error joining legacyThread");
 			System.exit(2);
-		}
+		}*/
 		
 		for (String id : missingEpisodes) {
 			if (map.put(id, null) != null) {
@@ -341,7 +440,12 @@ public class InitDB {
 				user.setPassword("disabled");
 				user.setBio("");
 				Strings.log("ID must exist, but doesn't: " + childId);
-				DBEpisode parent = DB.session.get(DBEpisode.class, parentId);
+				DBEpisode parent;
+				try {
+					parent = DB.getEpById( parentId);
+				} catch (DBException e) {
+					throw new RuntimeException(e);
+				}
 				child.setId(childId);
 				child.setParent(parent);
 				
@@ -361,7 +465,12 @@ public class InitDB {
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
 								
-				DBEpisode parent = DB.session.get(DBEpisode.class, parentId);
+				DBEpisode parent;
+				try {
+					parent = DB.getEpById( parentId);
+				} catch (DBException e) {
+					throw new RuntimeException(e);
+				}
 				
 				DBUser user = new DBUser();
 				{
@@ -376,6 +485,7 @@ public class InitDB {
 				user.setBio("");
 								
 				child.setId(childId);
+				child.setLegacyId(map.get(childId));
 				child.setDepth(keyToArr(childId).length);
 				child.setParent(parent);
 				child.setAuthor(user);
@@ -456,8 +566,8 @@ public class InitDB {
 			DBEpisode ep = new DBEpisode();
 			String author = null;
 			try {
-				in.nextLine(); // skip oldId, not needed
-				String id = in.nextLine();//Strings.log(in.nextLine()); // skit newId, not needed
+				in.nextLine(); // Don't need oldId now
+				String id = in.nextLine(); // Only used for logging here
 				ep.setLink(trimTo(in.nextLine(), 254).replace("%3f", "?"));
 				ep.setTitle(trimTo(in.nextLine(), 254));
 				author = trimTo(in.nextLine(), 254);
@@ -494,7 +604,7 @@ public class InitDB {
 			return new LegacyEpisodeContainer(ep, author);
 		} catch (FileNotFoundException e) {
 			Strings.log("Error: file not found " + f.getAbsolutePath());
-			throw new RuntimeException();
+			throw new RuntimeException(e);
 		} 
 	}
 	

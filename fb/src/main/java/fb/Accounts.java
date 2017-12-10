@@ -76,7 +76,7 @@ public class Accounts {
 		t.start();
 	}
 	
-	public static class UserSession {
+	public static class UserSession { 
 		public final String userID;
 		private Date lastActive;
 		public UserSession(String userID) {
@@ -179,7 +179,7 @@ public class Accounts {
 			}
 			sb.append("<a href=/fb/get/" + ep.id + ">" + escape(ep.title) + "</a> " + Strings.outputDateFormat(ep.date) + " " + story + "<br/>");
 		}
-		String bio = Story.formatBody(user.bio, 0);
+		String bio = Story.formatBody(user.bio);
 		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$BODY", bio).replace("$EPISODES", sb.toString());
 	}
 	

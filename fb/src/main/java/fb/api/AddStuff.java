@@ -6,7 +6,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Cookie;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import fb.Story;
@@ -24,7 +26,7 @@ public class AddStuff {
 	 */
 	@GET
 	@Path("add/{id}")
-	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	@Produces(MediaType.TEXT_HTML)
 	public Response add(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.addForm(id, fbtoken)).build();
 	}
@@ -38,7 +40,7 @@ public class AddStuff {
 	 */
 	@GET
 	@Path("modify/{id}")
-	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	@Produces(MediaType.TEXT_HTML)
 	public Response modify(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.modifyForm(id, fbtoken)).build();
 	}
@@ -58,7 +60,7 @@ public class AddStuff {
 	 */
 	@POST
 	@Path("addpost/{id}")
-	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	@Produces(MediaType.TEXT_HTML)
 	public Response addpost(@PathParam("id") String id, @FormParam("link") String link,
 			@FormParam("title") String title, @FormParam("body") String body, 
 			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
@@ -93,7 +95,7 @@ public class AddStuff {
 	 */
 	@POST
 	@Path("modifypost/{id}")
-	//@Produces(MediaType.TEXT_HTML + "; charset=UTF-8")
+	@Produces(MediaType.TEXT_HTML)
 	public Response modifypost(@PathParam("id") String id, @FormParam("link") String link,
 			@FormParam("title") String title, @FormParam("body") String body, 
 			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {

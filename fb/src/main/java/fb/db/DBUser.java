@@ -1,6 +1,5 @@
 package fb.db;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,20 +7,15 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 @Entity
 @Table(name="fbusers")
-public class DBUser implements Serializable {
+public class DBUser {
 	
-	/****/
-	private static final long serialVersionUID = -3123455003291956376L;
-
 	public DBUser() {}
 	
-	@OneToOne
-	private DBEmail email;
+	private String email;
 	
 	@Id
 	private String id;
@@ -43,11 +37,11 @@ public class DBUser implements Serializable {
 	@OneToMany(mappedBy = "editor")
 	private List<DBEpisode> editors = new ArrayList<>();
 	
-	public DBEmail getEmail() {
+	public String getEmail() {
 		return email;
 	}
 
-	public void setEmail(DBEmail email) {
+	public void setEmail(String email) {
 		this.email = email;
 	}
 

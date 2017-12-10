@@ -14,6 +14,8 @@ public class User {
 	public final String bio;
 	public final byte level;
 	public final String theme; // HTML theme name
+	public final String email;
+	public final String hashedPassword;
 	public final Episode[] episodes;
 	
 	/**
@@ -26,6 +28,8 @@ public class User {
 		this.bio = user.getBio();
 		this.level = user.getLevel();
 		this.theme = user.getTheme();
+		this.email = user.getEmail();
+		this.hashedPassword = user.getPassword();
 		ArrayList<Episode> episodeList = new ArrayList<>();
 		for (DBEpisode ep : user.getEpisodes()) episodeList.add(new Episode(ep));
 		Episode[] arr = new Episode[episodeList.size()];

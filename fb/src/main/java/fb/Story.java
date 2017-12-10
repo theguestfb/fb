@@ -6,26 +6,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.List;
 import java.util.TreeSet;
 
 import javax.ws.rs.core.Cookie;
 
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
-import org.commonmark.node.Block;
-import org.commonmark.node.BlockQuote;
-import org.commonmark.node.FencedCodeBlock;
-import org.commonmark.node.Heading;
-import org.commonmark.node.HtmlBlock;
-import org.commonmark.node.IndentedCodeBlock;
-import org.commonmark.node.ListBlock;
-import org.commonmark.node.ThematicBreak;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
-
-import com.google.common.collect.ImmutableSet;
+import com.vladsch.flexmark.ext.autolink.AutolinkExtension;
+import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.options.MutableDataSet;
 
 import fb.Accounts.FBLoginException;
 import fb.db.DB;
@@ -57,21 +47,11 @@ public class Story {
 	 * @param id id of episode
 	 * @return HTML episode
 	 */
-	public static String getHTML(String id, int sort, String settings, Cookie token) {
-		
-		int set;
-		try {
-			set = Integer.parseInt(settings.trim());
-			if (set < 0 || set > 127) return Strings.getFile("generic.html", token).replace("$EXTRA", "Invalid settings " + settings);
-		} catch (NumberFormatException e) {
-			return Strings.getFile("generic.html", token).replace("$EXTRA", "Invalid settings " + settings);
-		}
-		
+	public static String getHTML(String id, int sort, Cookie token) {
 		Episode ep;
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e) {
-			//return notFound(id);
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 			StringBuilder sb = new StringBuilder();
@@ -119,7 +99,7 @@ public class Story {
 			
 			return Strings.getFile("story.html", token)
 					.replace("$TITLE", escape(ep.title))
-					.replace("$BODY", formatBody(ep.body, set))
+					.replace("$BODY", formatBody(ep.body))
 					.replace("$AUTHOR", author)
 					.replace("$PARENTID", (ep.parentId == null) ? ".." : escape(ep.parentId))
 					.replace("$ID", id)
@@ -228,7 +208,7 @@ public class Story {
 		}
 		StringBuilder sb = new StringBuilder();
 		for (Episode child : path) if (child != null){ 
-			sb.append(formatBody(child.body, 0) + "<hr/>\n");
+			sb.append(formatBody(child.body) + "<hr/>\n");
 		}
 		
 		return Strings.getFile("completestory.html", token).replace("$TITLE", escape(path[0].title)).replace("$BODY", sb.toString());
@@ -298,11 +278,11 @@ public class Story {
 		body = body.trim();
 		
 		String errors = checkEpisode(link, title, body);
-		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", errors));
 		try {
 			return DB.addEp(id, link, title, body, user.id, new Date()).id;
 		} catch (DBException e) {
-			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", e.getMessage()));
 		}
 	}
 	
@@ -337,11 +317,11 @@ public class Story {
 		body = body.trim();
 		
 		String errors = checkEpisode(link, title, body);
-		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", errors));
 		try {
 			return DB.addRootEp(link, title, body, user.id, new Date()).id;
 		} catch (DBException e) {
-			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", e.getMessage()));
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", e.getMessage()));
 		}
 	}
 	
@@ -412,12 +392,12 @@ public class Story {
 		body = body.trim();
 		
 		String errors = checkEpisode(link, title, body);
-		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", errors));
+		if (errors != null) throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", errors));
 				
 		try {
 			DB.modifyEp(id, link, title, body, user.id);
 		} catch (DBException e) {
-			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$REASON", "Not found: " + id));
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", "Not found: " + id));
 		}
 				
 		return id;	
@@ -456,82 +436,32 @@ public class Story {
 		
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
-	public static final ImmutableSet<String> replacers = 
-			ImmutableSet.copyOf(new String[]{"$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$REASON","$EPISODES","$STYLE"});
+	public static final List<String> replacers = 
+			Collections.unmodifiableList(new ArrayList<>(Arrays.asList("$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$EPISODES","$STYLE")));
 	
 	/**
 	 * Escape body text and convert markdown/formatting to HTML
 	 * @param body unformatted markdown body
 	 * @return HTML formatted body
 	 */
-	public static String formatBody(String body, int settings) {
-		String ret = body;
-		ret = escape(ret);
-		
-		HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
-		
-		if (settings >= 64) {
-			enabledBlockTypes.add(HtmlBlock.class);
-			settings -= 64;
-		}
-		
-		if (settings >= 32) {
-			enabledBlockTypes.add(FencedCodeBlock.class);
-			settings -= 32;
-		}
-		
-		if (settings >= 16) {
-			enabledBlockTypes.add(IndentedCodeBlock.class);
-			settings -= 16;
-		}
-		
-		if (settings >= 8) {
-			enabledBlockTypes.add(ListBlock.class);
-			settings -= 8;
-		}
-		
-		if (settings >= 4) {
-			enabledBlockTypes.add(BlockQuote.class);
-			settings -= 4;
-		}
-		
-		if (settings >= 2) {
-			enabledBlockTypes.add(ThematicBreak.class);
-			settings -= 2;
-		}
-		
-		if (settings >= 1) {
-			enabledBlockTypes.add(Heading.class);
-			settings -= 1;
-		}
-		
-		//ret = renderer.render(parser.parse(ret));
-		ret = renderer.render(Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build().parse(ret));
-		return ret;
+	public static String formatBody(String body) {
+		return renderer.render(parser.parse(escape(body)));
 	}
 	
-	//private static Parser parser;
+	private static Parser parser;
 	private static HtmlRenderer renderer;
 	
-	private static HashSet<Extension> extensions = new HashSet<>();
-	
 	static {
-		//HashSet<Class<? extends Block>> enabledBlockTypes = new HashSet<>();
-		//HashSet<Extension> extensions = new HashSet<>();
-
-		//enabledBlockTypes.add(Heading.class);
-		//enabledBlockTypes.add(HtmlBlock.class);
-		//enabledBlockTypes.add(ThematicBreak.class);
-		//enabledBlockTypes.add(FencedCodeBlock.class);
-		//enabledBlockTypes.add(IndentedCodeBlock.class);
-		//enabledBlockTypes.add(BlockQuote.class);
-		//enabledBlockTypes.add(ListBlock.class);
-		
-		extensions.add(StrikethroughExtension.create());
-		extensions.add(AutolinkExtension.create());
-		
-		//parser = Parser.builder().enabledBlockTypes(enabledBlockTypes).extensions(extensions).build();
-		renderer = HtmlRenderer.builder().extensions(extensions).build();
+		MutableDataSet options = new MutableDataSet();
+		options.set(Parser.EXTENSIONS, Arrays.asList(StrikethroughExtension.create(), AutolinkExtension.create()));
+		options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
+		options.set(Parser.FENCED_CODE_BLOCK_PARSER, false);
+		options.set(Parser.INDENTED_CODE_BLOCK_PARSER, false);
+		options.set(Parser.HTML_BLOCK_PARSER, false);
+		options.set(Parser.BLOCK_QUOTE_PARSER, false);
+				
+		parser = Parser.builder(options).build();
+		renderer = HtmlRenderer.builder(options).build();
 	}
 
 }

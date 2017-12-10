@@ -36,6 +36,7 @@ public class GetStuff {
 	 * @return HTML welcome page
 	 */
 	@GET
+	@Produces(MediaType.TEXT_HTML)
 	public Response getRoot(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Story.getWelcome(fbtoken)).build();
 	}
@@ -46,6 +47,7 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("get")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getGet() {
 		return Response.seeOther(createURI("/fb")).build();
 	}
@@ -59,21 +61,9 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("get/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response get(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 0, "0", fbtoken)).build();
-	}
-	
-	/**
-	 * Gets an episode by its id, default sort
-	 * 
-	 * @param id
-	 *            id of episode (1-7-4-...-3)
-	 * @return HTML episode with id
-	 */
-	@GET
-	@Path("get/{id}/{settings}")
-	public Response get(@PathParam("id") String id, @PathParam("settings") String settings, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 0, settings, fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 0, fbtoken)).build();
 	}
 
 	/**
@@ -85,8 +75,9 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getnewest/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getnewest(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 1, "0", fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 1, fbtoken)).build();
 	}
 
 	/**
@@ -98,8 +89,9 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getmostfirst/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getmostfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 2, "0", fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 2, fbtoken)).build();
 	}
 
 	/**
@@ -111,8 +103,9 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getleastfirst/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getleastfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 3, "0", fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 3, fbtoken)).build();
 	}
 
 	/**
@@ -124,8 +117,9 @@ public class GetStuff {
 	 */
 	@GET
 	@Path("getrandom/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getrandom(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 4, "0", fbtoken)).build();
+		return Response.ok(Story.getHTML(id, 4, fbtoken)).build();
 	}
 	
 	/**
@@ -157,30 +151,35 @@ public class GetStuff {
 
 	@GET
 	@Path("recent/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response recentstory(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("num") String num, @PathParam("id") String id) {
 		return Response.ok(Story.getRecents(fbtoken, num, id)).build();
 	}
 	
 	@GET
 	@Path("recent")
+	@Produces(MediaType.TEXT_HTML)
 	public Response recent(@CookieParam("fbtoken") Cookie fbtoken, @QueryParam("num") String num) {
 		return Response.ok(Story.getRecents(fbtoken, num, "0")).build();
 	}
 	
 	@GET
 	@Path("outline/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response outline(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id, @QueryParam("depth") String depth) {
 		return Response.ok(Story.getOutline(fbtoken, id, depth)).build();
 	}
 	
 	@GET
 	@Path("path/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response path(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id) {
 		return Response.ok(Story.getPath(fbtoken, id)).build();
 	}
 	
 	@GET
 	@Path("complete/{id}")
+	@Produces(MediaType.TEXT_HTML)
 	public Response getcomplete(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id) {
 		System.out.println("Complete request : " + id);
 		String ret = Story.getCompleteHTML(fbtoken, id);
@@ -192,6 +191,7 @@ public class GetStuff {
 	
 	@GET
 	@Path("formatting")
+	@Produces(MediaType.TEXT_HTML)
 	public Response formatting(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Strings.getFile("formatting.html", fbtoken)).build();
 	}
