@@ -1,6 +1,7 @@
 package fb.db;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -76,58 +77,67 @@ public class DB {
 	}
 	
 	static DBEpisode getEpById(String id) throws DBException {
-		CriteriaBuilder cb = session.getCriteriaBuilder();
-		CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
-		Root<DBEpisode> root = query.from(DBEpisode.class);
-		query.select(root).where(cb.equal(root.get("id"), id));
-		List<DBEpisode> result = session.createQuery(query).list();
-		if (result.size() == 0) return null;
-		else if (result.size() > 1) {
-			StringBuilder sb = new StringBuilder();
-			for (DBEpisode ep : result) sb.append(ep.getGeneratedId() + " ");
-			throw new RuntimeException("Multiple episodes have matching id: " + id + " " + sb);
-		} else return result.get(0);
+		synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
+			Root<DBEpisode> root = query.from(DBEpisode.class);
+			query.select(root).where(cb.equal(root.get("id"), id));
+			List<DBEpisode> result = session.createQuery(query).list();
+			if (result.size() == 0) return null;
+			else if (result.size() > 1) {
+				StringBuilder sb = new StringBuilder();
+				for (DBEpisode ep : result) sb.append(ep.getGeneratedId() + " ");
+				throw new RuntimeException("Multiple episodes have matching id: " + id + " " + sb);
+			} else return result.get(0);
+		}
 	}
 	
 	static DBUser getUserById(String id) throws DBException {
-		CriteriaBuilder cb = session.getCriteriaBuilder();
-		CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
-		Root<DBUser> root = query.from(DBUser.class);
-		query.select(root).where(cb.equal(root.get("id"), id));
-		List<DBUser> result = session.createQuery(query).list();
-		if (result.size() == 0) return null;
-		else if (result.size() > 1) {
-			StringBuilder sb = new StringBuilder();
-			for (DBUser ep : result) sb.append(ep.getId() + " ");
-			throw new RuntimeException("Multiple users have matching id: " + id + " " + sb);
-		} else return result.get(0);
+		synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
+			Root<DBUser> root = query.from(DBUser.class);
+			query.select(root).where(cb.equal(root.get("id"), id));
+			List<DBUser> result = session.createQuery(query).list();
+			if (result.size() == 0) return null;
+			else if (result.size() > 1) {
+				StringBuilder sb = new StringBuilder();
+				for (DBUser ep : result) sb.append(ep.getId() + " ");
+				throw new RuntimeException("Multiple users have matching id: " + id + " " + sb);
+			} else return result.get(0);
+		}
 	}
 	
 	public static User getUserByEmail(String email) throws DBException {
-		CriteriaBuilder cb = session.getCriteriaBuilder();
-		CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
-		Root<DBUser> root = query.from(DBUser.class);
-		query.select(root).where(cb.equal(root.get("email"), email));
-		List<DBUser> result = session.createQuery(query).list();
-		if (result.size() == 0) throw new DBException("Email not found: " + email);
-		else if (result.size() > 1) {
-			StringBuilder sb = new StringBuilder();
-			for (DBUser ep : result) sb.append(ep.getId() + " ");
-			throw new RuntimeException("Multiple users have matching email: " + email + " " + sb);
-		} else return new User(result.get(0));
+		synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
+			Root<DBUser> root = query.from(DBUser.class);
+			query.select(root).where(cb.equal(root.get("email"), email));
+			List<DBUser> result = session.createQuery(query).list();
+			if (result.size() == 0)
+				throw new DBException("Email not found: " + email);
+			else if (result.size() > 1) {
+				StringBuilder sb = new StringBuilder();
+				for (DBUser ep : result) sb.append(ep.getId() + " ");
+				throw new RuntimeException("Multiple users have matching email: " + email + " " + sb);
+			} else return new User(result.get(0));
+		}
 	}
 	
-	static TempUser[] getTempUsers() throws DBException {
-		CriteriaBuilder cb = session.getCriteriaBuilder();
-		CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
-		Root<DBUser> root = query.from(DBUser.class);
-		query.select(root).where(cb.isNotNull(root.get("email")));
-		List<DBUser> result = session.createQuery(query).list();
-		
-		TempUser[] list = new TempUser[result.size()];
-		for (int i=0; i<result.size(); ++i) list[i] = new TempUser(new User(result.get(i)));
-		
-		return list;
+	static TempUser[] getTempUsers() {
+		synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
+			Root<DBUser> root = query.from(DBUser.class);
+			query.select(root).where(cb.isNotNull(root.get("email")));
+			List<DBUser> result = session.createQuery(query).list();
+
+			TempUser[] list = new TempUser[result.size()];
+			for (int i = 0; i < result.size(); ++i) list[i] = new TempUser(new User(result.get(i)));
+
+			return list;
+		}
 	}
 	
 	/**
@@ -190,7 +200,6 @@ public class DB {
 			}
 			
 			session.save(child);
-			//session.merge(parent);
 			for (DBEpisode parEp : parents) session.merge(parEp);
 			session.merge(author);
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
@@ -337,7 +346,6 @@ public class DB {
 	 */
 	public static Episode[] getRecents(int rootId, int num) throws DBException {
 		synchronized(dbLock) {
-			ArrayList<Episode> list = new ArrayList<>();
 
 			if (rootId != 0) DB.getEp(""+rootId);
 			
@@ -355,18 +363,15 @@ public class DB {
 			}
 			
 			List<DBEpisode> result = session.createQuery(query).setMaxResults(num).list();
-			for (DBEpisode ep : result) list.add(new Episode(ep));
+			Episode[] list = new Episode[result.size()];
+			for (int i=0; i<result.size(); ++i) list[i] = new Episode(result.get(i));
 			
-			//return new EpisodeList(list);
-			Episode[] arr = new Episode[list.size()];
-			arr = list.toArray(arr);
-			return arr;
+			return list;
 		}
 	}
 	
 	public static Episode[] getOutline(String rootId, int maxDepth) throws DBException {
 		synchronized(dbLock) {
-			ArrayList<Episode> list = new ArrayList<>();
 			
 			int minDepth = DB.getEp(rootId).depth;
 			maxDepth += minDepth;
@@ -384,12 +389,10 @@ public class DB {
 			query.select(root).where(cb.and(idPredicate,depthPredicate));
 			
 			List<DBEpisode> result = session.createQuery(query).list();
-			for (DBEpisode ep : result) list.add(new Episode(ep));
+			Episode[] list = new Episode[result.size()];
+			for (int i=0; i<result.size(); ++i) list[i] = new Episode(result.get(i));
 			
-			//return new EpisodeList(list);
-			Episode[] arr = new Episode[list.size()];
-			arr = list.toArray(arr);
-			return arr;
+			return list;
 		}
 	}
 	
@@ -397,9 +400,7 @@ public class DB {
 		synchronized (dbLock) {
 			DBEpisode ep = DB.getEpById(id);
 			if (ep == null) throw new DBException("Not found: " + id);
-			ArrayList<Episode> episodeList;
-			
-			episodeList = new ArrayList<>(ep.getDepth());
+			ArrayList<Episode> episodeList = new ArrayList<>(ep.getDepth());
 			while (ep != null && ep.getParent() != null && !ep.getParent().getId().equals(ep.getId())) {
 				episodeList.add(new Episode(ep));
 				ep = DB.getEpById(ep.getParent().getId());
@@ -408,17 +409,16 @@ public class DB {
 			if (ep != null) episodeList.add(new Episode(ep));
 			Collections.reverse(episodeList);
 			
-			
-			Episode[] arr = new Episode[episodeList.size()];
-			arr = episodeList.toArray(arr);
-			return arr;
+			Episode[] ret = new Episode[episodeList.size()];
+			ret = episodeList.toArray(ret);
+			return ret;
 			
 		}
 	}
 	
 	public static Episode[] getRoots() throws DBException {
 		synchronized(dbLock) {
-			ArrayList<Episode> list = new ArrayList<>();
+			//ArrayList<Episode> list = new ArrayList<>();
 			
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
@@ -427,17 +427,16 @@ public class DB {
 			query.select(root).where(cb.notLike(root.get("id"), "%-%"));
 			
 			List<DBEpisode> result = session.createQuery(query).list();
-			for (DBEpisode ep : result) list.add(new Episode(ep));
+			Episode[] list = new Episode[result.size()];
+			for (int i=0; i<result.size(); ++i) list[i] = new Episode(result.get(i));
 			
-			Collections.sort(list, new Comparator<Episode>() {
+			Arrays.sort(list, new Comparator<Episode>() {
 				public int compare(Episode o1, Episode o2) {
 					return Comparators.keyStringComparator.compare(o1.id, o2.id);
 				}
 			});
 			
-			Episode[] arr = new Episode[list.size()];
-			arr = list.toArray(arr);
-			return arr;
+			return list;
 		}
 	}
 	
@@ -460,7 +459,6 @@ public class DB {
 			user.setAuthor(author);
 			user.setEmail(email);
 			user.setBio("");
-			//user.setPassword(BCrypt.hashpw(password,BCrypt.gensalt(10)));
 			user.setPassword(password);
 		
 			String id = newUserId();

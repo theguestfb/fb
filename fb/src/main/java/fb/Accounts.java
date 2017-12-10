@@ -2,8 +2,13 @@ package fb;
 
 import static fb.util.Strings.escape;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +25,8 @@ import javax.ws.rs.core.Cookie;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.google.gson.Gson;
+
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
@@ -31,10 +38,104 @@ public class Accounts {
 	private static ConcurrentHashMap<String,PotentialUser> createQueue = new ConcurrentHashMap<>(); //<createToken, user>
 	private static ConcurrentHashMap<String,EmailChange> emailChangeQueue = new ConcurrentHashMap<>(); //<changeToken, EmailChange>
 	
+	private static final String tempPath =System.getProperty("user.home") + "/fbtemp";
+	private static final String sessionPath = tempPath + "/sessions/";
+	private static final String emailQueuePath = tempPath + "/sessions/";
+	private static final String potentialUsersPath = tempPath + "/sessions/";
+	
+	public static void writeQueuesToFile() {
+		Strings.log("Writing queues to file");
+		new File(emailQueuePath).mkdirs();
+		new File(sessionPath).mkdirs();
+		new File(potentialUsersPath).mkdirs();
+		for (Entry<String,EmailChange> entry : emailChangeQueue.entrySet()) {
+			try (BufferedWriter out = new BufferedWriter(new FileWriter(emailQueuePath + entry.getKey()))) {
+				out.write(new Gson().toJson(entry.getValue()));
+				out.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Strings.log("Error writing email change queue: " + e.getMessage());
+			}
+		}	
+		for (Entry<String,PotentialUser> entry : createQueue.entrySet()) {
+			try (BufferedWriter out = new BufferedWriter(new FileWriter(potentialUsersPath + entry.getKey()))) {
+				out.write(new Gson().toJson(entry.getValue()));
+				out.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Strings.log("Error writing potential users queue: " + e.getMessage());
+			}
+		}
+		for (Entry<String,UserSession> entry : active.entrySet()) {
+			try (BufferedWriter out = new BufferedWriter(new FileWriter(sessionPath + entry.getKey()))) {
+				out.write(new Gson().toJson(entry.getValue()));
+				out.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Strings.log("Error writing user sessions queue: " + e.getMessage());
+			}
+		}
+		Strings.log("Done writing queues to file");
+	}
+	
+	private static void readQueuesFromFile() {
+		Strings.log("Reading queues from file");
+		File dir = new File(sessionPath);
+		if (dir.exists()) {
+			if (dir.isDirectory()) {
+				for (File f : dir.listFiles()) {
+					UserSession sesh = new Gson().fromJson(Strings.readFile(f), UserSession.class);
+					String token = f.getName();
+					active.put(token, sesh);
+				}
+			} else Strings.log("Session directory " + sessionPath + " exists but is a file");
+		} else Strings.log("Session directory " + sessionPath + " does not exist");
+		
+		dir = new File(emailQueuePath);
+		if (dir.exists()) {
+			if (dir.isDirectory()) {
+				for (File f : dir.listFiles()) {
+					EmailChange ec = new Gson().fromJson(Strings.readFile(f), EmailChange.class);
+					String token = f.getName();
+					emailChangeQueue.put(token, ec);
+				}
+			} else Strings.log("Email queue directory " + sessionPath + " exists but is a file");
+		} else Strings.log("Email queue directory " + sessionPath + " does not exist");
+		
+		dir = new File(potentialUsersPath);
+		if (dir.exists()) {
+			if (dir.isDirectory()) {
+				for (File f : dir.listFiles()) {
+					PotentialUser user = new Gson().fromJson(Strings.readFile(f), PotentialUser.class);
+					String token = f.getName();
+					createQueue.put(token, user);
+				}
+			} else Strings.log("Email queue directory " + sessionPath + " exists but is a file");
+		} else Strings.log("Email queue directory " + sessionPath + " does not exist");
+		Strings.safeDeleteFileDirectory(tempPath);
+		Strings.log("Done reading queues from file");
+	}
+	
+	public static void logActiveSessions() {
+		Strings.log("Active login sessions:");
+		for (UserSession sesh : active.values()) {
+			User user;
+			try {
+				user = DB.getUser(sesh.userID);
+			} catch (DBException e) {
+				Strings.log("Couldn't find user with id " + sesh.userID);
+				continue;
+			}
+			Strings.log(user.id + " " + user.author + " " + user.email + " " + sesh.lastActive);
+		}
+		Strings.log("That's all folks");
+	}
+	
 	/*
 	 * Scan the active sessions and createQueue maps for expired
 	 */
 	static {
+		readQueuesFromFile();
 		Thread t = new Thread() {
 			public void run() {
 				while (true) {

@@ -201,7 +201,7 @@ public class InitDB {
 				String parentId = getParentId(tempEp.getId());
 				parent = DB.getEpById(parentId);
 			} catch (StringIndexOutOfBoundsException e) {
-				parent = ep;
+				parent = null; // this is a root episode
 			}
 			ep.setBody(tempEp.getBody());
 			ep.setChildCount(0);

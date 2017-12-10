@@ -15,12 +15,17 @@ import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -128,6 +133,7 @@ public class Strings {
 	private static void initFiles()  {
 		File dirFile = firstRead(); // ALWAYS CALL THIS!
 		startFileWatcher(dirFile); // only call this if you want file changes to be watched for and loaded (you probably do)
+		startCommandWatcher(new File(BASE_DIR + "/commands"));
 	}
 	private static File firstRead() {
 		File dirFile = new File(BASE_DIR + "/static_snippets");
@@ -180,6 +186,57 @@ public class Strings {
 							if (!f.getName().startsWith(".")) {
 								log("MODIFY: " + f.getAbsolutePath());
 								updateFile(f);
+							}
+						}
+					}
+					if (!key.reset())
+						break;
+				}
+			}
+		};
+		t.setName("FileTrackerThread");
+		t.start();
+	}
+	
+	private static void startCommandWatcher(File dirFile) {
+		if (!dirFile.exists()) dirFile.mkdirs();
+		else if (!dirFile.isDirectory()) {
+			Strings.log("Could not start command watcher, command dir is file " + dirFile);
+			return;
+		}
+		WatchService watcher = null;
+		try {
+			watcher = FileSystems.getDefault().newWatchService();
+		} catch (IOException e) {
+			log("Error creating watch service");
+			return;
+		}
+		Path dir = dirFile.toPath();
+		try {
+			dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
+		} catch (IOException e1) {
+			log("IOException registering dir with watcher");
+			return;
+		}
+		final WatchService finalWatcher = watcher;
+		Thread t = new Thread() {
+			public void run() {
+				WatchKey key = null;
+				while (true) {
+					try {
+						key = finalWatcher.take();
+					} catch (InterruptedException e) {
+						log(e.getMessage());
+						return;
+					}
+					for (WatchEvent<?> event : key.pollEvents()) {
+						File f = dir.resolve((Path) (event.context())).toFile();
+						f.delete();
+						if (!f.getName().startsWith(".")) {
+							switch(f.getName().toLowerCase()) {
+							case "sessions":
+								Accounts.logActiveSessions();
+								break;
 							}
 						}
 					}
@@ -295,5 +352,33 @@ public class Strings {
 		StringBuilder sb = new StringBuilder();
 		for (String theme : list) sb.append(String.format("<option value=\"%s\">%s</option>%n", theme, theme));
 		return sb.toString();
+	}
+	
+	public static void safeDeleteFileDirectory(String dirPath) {
+		File f = new File(dirPath);
+		if (f.exists()) {
+			if (f.isDirectory()) {
+				Path directory = Paths.get(dirPath);
+
+				try {
+					Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+						@Override
+						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+							Files.delete(file);
+							return FileVisitResult.CONTINUE;
+						}
+
+						@Override
+						public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+							Files.delete(dir);
+							return FileVisitResult.CONTINUE;
+						}
+					});
+				} catch (IOException e) {
+					Strings.log("Error deleting directory " + dirPath);
+					e.printStackTrace();
+				}
+			} else f.delete();
+		}
 	}
 }

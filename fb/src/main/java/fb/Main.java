@@ -127,6 +127,13 @@ public class Main {
 		} finally {
 			System.exit(0);
 		}*/
+		
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				Accounts.writeQueuesToFile();
+			}
+		});
+		
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
 		resourceConfig.register(CharsetResponseFilter.class);
