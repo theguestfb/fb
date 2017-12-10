@@ -14,15 +14,13 @@ to subsequent episodes, plus the option to add another branch to the story at th
 
 2. Clone repository (`git clone https://github.com/fictionbranches/fb`)
 
-4. Choose a working directory for the backend. The default is /opt/fb. If you are on *nix (Linux, macOS, BSD, etc), you must either create this directory and make sure it is owned by your user, or use another directory. If you are on Windows, you will *have* to create a different directory, since "/opt/fb" is not a valid path. If you do not/cannot use /opt/fb, you must change the directory in:
-    - src/main/java/fb/Strings.java, change BASE_DIR to the directory
-    - src/main/resources/hibernate.cfg.xml, change "jdbc:h2:/opt/fb/storydb" to "jdbc:h2:/path/to/dir/storydb" (or "jdbc:h2:C:\path\to\dir\storydb" on Windows)
+4. Choose a working directory for the backend. The default is /opt/fb. If you are on *nix (Linux, macOS, BSD, etc), you must either create this directory and make sure it is owned by your user, or use another directory. If you are on Windows, you will *have* to create a different directory, since "/opt/fb" is not a valid path. If you do not/cannot use /opt/fb, you must change the BASE_DIR in src/main/java/fb/Strings.java.
 
 5. Copy the contents of optfb in the repository to your working directory
 
 6. Modify domain.txt in the working directory to your domain (localhost:8080 should work here)
 
-7. Set up postgres with database named fictionbranches, and a roll named fictionbranches with access to it
+7. Set up postgres with database named fictionbranches, and a postgres roll named fictionbranches with access to it
 
 8. Database
     - If you have raw scrape data, put it in ~/fbscrape and do `./gradlew run -PrunArgs='init'` to initiate a scrape. It will ask your for passwords for the root account and mine, the begin to import the raw scrape into the db. 
@@ -35,3 +33,5 @@ to subsequent episodes, plus the option to add another branch to the story at th
     - run with `java -Xmx2048m -jar build/libs/fb.jar`
 
 The backend is now running. It can be accessed at http://localhost:8080/fb 
+
+Note that when you cleanly (using ctrl+c, SIGINT, etc (or whatever the Windows equivalents of those are) shut down the server, it will write transient data (active login sessions, unconfirmed new user accounts, and unconfirmed email address changes) to json files in ~/fbtemp. When the server starts, it will look for this directory and, if it finds it, read in the json files and delete the directory. 
