@@ -13,6 +13,7 @@ import javax.ws.rs.core.Response;
 
 import fb.Story;
 import fb.Story.EpisodeException;
+import fb.db.DB;
 import fb.util.Strings;
 
 @Path("fb")
@@ -28,6 +29,8 @@ public class AddStuff {
 	@Path("add/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response add(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
 		return Response.ok(Story.addForm(id, fbtoken)).build();
 	}
 	
@@ -42,6 +45,8 @@ public class AddStuff {
 	@Path("modify/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response modify(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
 		return Response.ok(Story.modifyForm(id, fbtoken)).build();
 	}
 
@@ -64,6 +69,8 @@ public class AddStuff {
 	public Response addpost(@PathParam("id") String id, @FormParam("link") String link,
 			@FormParam("title") String title, @FormParam("body") String body, 
 			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
 			switch(response) {
@@ -99,6 +106,8 @@ public class AddStuff {
 	public Response modifypost(@PathParam("id") String id, @FormParam("link") String link,
 			@FormParam("title") String title, @FormParam("body") String body, 
 			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
 			switch(response) {

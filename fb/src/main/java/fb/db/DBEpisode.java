@@ -22,7 +22,8 @@ public class DBEpisode {
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	private long generatedId;
 	
-	@Column(columnDefinition = "text")
+	
+	@Column(columnDefinition = "text", unique=true)
 	private String id;
 			
 	private String legacyId = null;

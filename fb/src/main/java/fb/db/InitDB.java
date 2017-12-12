@@ -19,6 +19,8 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import javax.persistence.RollbackException;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
@@ -34,6 +36,19 @@ import fb.util.Strings;
  * initialize the database
  */
 public class InitDB {
+	
+	public static void asdf() {
+		DB.session.beginTransaction();
+		DBEpisode ep = new DBEpisode();
+		ep.setId("1");
+		try {
+			DB.session.save(ep);
+			DB.session.getTransaction().commit();
+			System.out.println("Commit successful");
+		} catch (RollbackException e) {
+			DB.session.getTransaction().rollback();
+		}
+	}
 
 	
 	private static final boolean PRINT_EPISODES_ADDED = true; // enable to print each episode's newid to stdout when it is added to the db
@@ -88,8 +103,17 @@ public class InitDB {
 			DB.session.save(user);
 			DB.session.getTransaction().commit();
 									
-			System.out.println("enter phoenix password:");
-			String phoenixID = DB.addUser("root@carolinaphoenix.net", BCrypt.hashpw(in.nextLine(), BCrypt.gensalt(10)), "Phoenix");
+			System.out.println("Enter your email address:");
+			String email = in.nextLine();
+			
+			System.out.println("Enter your author name:");
+			String author = in.nextLine();
+			
+			
+			System.out.println("enter your password:");
+			String password = in.nextLine();
+			
+			String phoenixID = DB.addUser(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
 			DB.changeUserLevel(phoenixID, (byte)100);
 		}
 				
@@ -111,7 +135,7 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		readStory("yawyw", "2");
+		//readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		

@@ -43,6 +43,7 @@ import com.google.gson.Gson;
 
 import fb.Accounts;
 import fb.Accounts.FBLoginException;
+import fb.db.DB;
 import fb.json.JsonCaptchaResponse;
 
 public class Strings {
@@ -105,23 +106,27 @@ public class Strings {
 	 * @param message
 	 */
 	public static void log(String message) {
-		Calendar c = Calendar.getInstance();
-		int y = c.get(Calendar.YEAR);
-		int mo = c.get(Calendar.MONTH);
-		int d = c.get(Calendar.DAY_OF_MONTH);
-		int h = c.get(Calendar.HOUR_OF_DAY);
-		int mi = c.get(Calendar.MINUTE);
-		int s = c.get(Calendar.SECOND);
-		try (BufferedWriter out = new BufferedWriter(new FileWriter(BASE_DIR + "/log.txt", true))) {
-			out.write(String.format("%04d-%02d-%02d %02d:%02d:%02d %s", y, mo, d, h, mi, s, message));
-			out.newLine();
-			out.flush();
-		} catch (IOException e) {
-			System.err.printf("%04d-%02d-%02d %02d:%02d:%02d %s%n", y, mo, d, h, mi, s, "Could not open log file");
-		} finally {
-			System.out.printf("%04d-%02d-%02d %02d:%02d:%02d %s%n", y, mo, d, h, mi, s, message);
+		synchronized (logLock) {
+			Calendar c = Calendar.getInstance();
+			int y = c.get(Calendar.YEAR);
+			int mo = c.get(Calendar.MONTH);
+			int d = c.get(Calendar.DAY_OF_MONTH);
+			int h = c.get(Calendar.HOUR_OF_DAY);
+			int mi = c.get(Calendar.MINUTE);
+			int s = c.get(Calendar.SECOND);
+			try (BufferedWriter out = new BufferedWriter(new FileWriter(BASE_DIR + "/log.txt", true))) {
+				out.write(String.format("%04d-%02d-%02d %02d:%02d:%02d %s", y, mo, d, h, mi, s, message));
+				out.newLine();
+				out.flush();
+			} catch (IOException e) {
+				System.err.printf("%04d-%02d-%02d %02d:%02d:%02d %s%n", y, mo, d, h, mi, s, "Could not open log file");
+			} finally {
+				System.out.printf("%04d-%02d-%02d %02d:%02d:%02d %s%n", y, mo, d, h, mi, s, message);
+			}
 		}
 	}
+	
+	private static Object logLock = new Object();
 	
 	private static void updateFile(File f) {
 		log("Updating modified file " + f.getName());
@@ -233,9 +238,25 @@ public class Strings {
 						File f = dir.resolve((Path) (event.context())).toFile();
 						f.delete();
 						if (!f.getName().startsWith(".")) {
+							String command = f.getName().toLowerCase();
 							switch(f.getName().toLowerCase()) {
 							case "sessions":
 								Accounts.logActiveSessions();
+								break; 
+							case "read_only_true":
+								if (DB.READ_ONLY_MODE == false) {
+									Strings.log("Enabling read-only");
+									DB.READ_ONLY_MODE = true;
+								} else Strings.log(command + ": read-only was already enabled");
+								break;
+							case "read_only_false":
+								if (DB.READ_ONLY_MODE == true) {
+									Strings.log("Disabling read-only");
+									DB.READ_ONLY_MODE = false;
+								} else Strings.log(command + ": read-only was already disabled");
+								break;
+							default:
+								Strings.log("Unrecognized command: " + command);
 								break;
 							}
 						}
@@ -245,7 +266,7 @@ public class Strings {
 				}
 			}
 		};
-		t.setName("FileTrackerThread");
+		t.setName("CommandWatcherThread");
 		t.start();
 	}
 	

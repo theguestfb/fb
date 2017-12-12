@@ -131,10 +131,18 @@ public class Accounts {
 		Strings.log("That's all folks");
 	}
 	
+	public static void bump() {
+		// Intentionally empty, used to force initAccounts to start
+	}
+	
 	/*
 	 * Scan the active sessions and createQueue maps for expired
 	 */
 	static {
+		initAccounts();
+	}
+	
+	private static void initAccounts() {
 		readQueuesFromFile();
 		Thread t = new Thread() {
 			public void run() {
@@ -222,6 +230,7 @@ public class Accounts {
 	 * @return HTML
 	 */
 	public static String getAccount(Cookie fbtoken) {
+		if (DB.READ_ONLY_MODE) return "";
 		String notLoggedIn = "<a href=/fb/createaccount>Create account</a><br/><a href=/fb/login>Log in</a>";
 		if (fbtoken == null) return notLoggedIn;
 		String token = fbtoken.getValue();

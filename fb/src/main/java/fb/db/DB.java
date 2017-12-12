@@ -27,6 +27,8 @@ import fb.util.Strings;
 
 public class DB {
 	
+	public static boolean READ_ONLY_MODE = false; //set this value to the default (will revert to this value after restarts)
+	
 	public static final String ROOT_ID = "fbadministrator1";
 	
 	private static final SessionFactory sessionFactory;

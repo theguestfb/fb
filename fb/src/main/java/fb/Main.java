@@ -1,9 +1,12 @@
 package fb;
 
-import javax.ws.rs.core.UriBuilder;
+import java.io.IOException;
 
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.simple.SimpleContainerFactory;
 
 import fb.api.AccountStuff;
 import fb.api.AddStuff;
@@ -98,6 +101,7 @@ public class Main {
 			System.err.println("No root episodes found");
 			throw new RuntimeException(e);
 		}
+		Accounts.bump();
 		/*String myid = ("2-216-26-9-1-3-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-"
 				+ "1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-2-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-"
 				+ "1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-2-1-1-"
@@ -134,11 +138,18 @@ public class Main {
 			}
 		});
 		
+		
+		
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
 		resourceConfig.register(CharsetResponseFilter.class);
 		Strings.log("Starting server");
-		SimpleContainerFactory.create(UriBuilder.fromUri("http://localhost/fb/").port(8080).build(), resourceConfig);
-		Strings.log("Server started");
+		try {
+			GrizzlyHttpServerFactory.createHttpServer(UriBuilder.fromUri("http://localhost/").port(8080).build(), resourceConfig).start();
+			Strings.log("Server started");
+		} catch (IllegalArgumentException | UriBuilderException | IOException e) {
+			Strings.log("Could not start server: " + e.getMessage());
+			e.printStackTrace();
+		}
 	}
 }
