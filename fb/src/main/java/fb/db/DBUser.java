@@ -15,10 +15,14 @@ public class DBUser {
 	
 	public DBUser() {}
 	
-	private String email;
-	
 	@Id
 	private String id;
+	
+	@Column(unique=true)
+	private String username;
+	
+	@Column(unique=true)
+	private String email;
 		
 	private String author;
 	
@@ -36,14 +40,6 @@ public class DBUser {
 	
 	@OneToMany(mappedBy = "editor")
 	private List<DBEpisode> editors = new ArrayList<>();
-	
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
 
 	public String getId() {
 		return id;
@@ -51,6 +47,22 @@ public class DBUser {
 
 	public void setId(String id) {
 		this.id = id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	public String getAuthor() {
@@ -77,22 +89,6 @@ public class DBUser {
 		this.password = password;
 	}
 
-	public List<DBEpisode> getEpisodes() {
-		return episodes;
-	}
-
-	public void setEpisodes(List<DBEpisode> episodes) {
-		this.episodes = episodes;
-	}
-
-	public List<DBEpisode> getEditors() {
-		return editors;
-	}
-
-	public void setEditors(List<DBEpisode> editors) {
-		this.editors = editors;
-	}
-
 	public byte getLevel() {
 		return level;
 	}
@@ -107,6 +103,22 @@ public class DBUser {
 
 	public void setTheme(String theme) {
 		this.theme = theme;
+	}
+
+	public List<DBEpisode> getEpisodes() {
+		return episodes;
+	}
+
+	public void setEpisodes(List<DBEpisode> episodes) {
+		this.episodes = episodes;
+	}
+
+	public List<DBEpisode> getEditors() {
+		return editors;
+	}
+
+	public void setEditors(List<DBEpisode> editors) {
+		this.editors = editors;
 	}
 	
 }

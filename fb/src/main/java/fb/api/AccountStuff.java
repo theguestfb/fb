@@ -24,9 +24,7 @@ public class AccountStuff {
 	@GET
 	@Path("user/{id}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response user(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
-		
+	public Response user(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {		
 		return Response.ok(Accounts.getUserPage(id,fbtoken)).build();
 	}
 	

@@ -7,7 +7,9 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -127,6 +129,25 @@ public class Strings {
 	}
 	
 	private static Object logLock = new Object();
+	
+	public static void log(Exception e) {
+		ArrayList<String> lines = new ArrayList<>();
+		try (StringWriter sw = new StringWriter()) {
+			try (PrintWriter writer = new PrintWriter(sw)) {
+				e.printStackTrace(writer);
+			}
+			try (Scanner s = new Scanner(sw.getBuffer().toString())) {
+				while (s.hasNext()) lines.add(s.nextLine());
+			}
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+			log(e.getMessage());
+			log("Trouble logging previous exception's stack trace: " + ioe.getMessage());
+		}
+		synchronized (logLock) {
+			for (String line : lines) log(line);
+		}
+	}
 	
 	private static void updateFile(File f) {
 		log("Updating modified file " + f.getName());

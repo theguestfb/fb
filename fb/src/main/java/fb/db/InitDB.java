@@ -28,6 +28,7 @@ import com.google.gson.Gson;
 import fb.db.DB.DBException;
 import fb.json.TempUser;
 import fb.json.TempUser.TempEpisode;
+import fb.objects.Episode;
 import fb.util.Comparators;
 import fb.util.Strings;
 
@@ -135,7 +136,7 @@ public class InitDB {
 		Strings.log("finished forum: " + (((double)(stop-start))/1000000000.0));
 		start = System.nanoTime();
 		
-		//readStory("yawyw", "2");
+		readStory("yawyw", "2");
 		stop = System.nanoTime();
 		Strings.log("finished yawyw: " + (((double)(stop-start))/1000000000.0));
 		
@@ -212,8 +213,8 @@ public class InitDB {
 			try {
 				DB.getEp(tempEp.getId());
 				skipEp = true;
-			} catch (DBException e) {
 				System.out.println("Skipping existing tempEp: " + tempEp.getId());
+			} catch (DBException e) {
 				skipEp = false;
 			}
 			if (skipEp) continue;
@@ -237,29 +238,25 @@ public class InitDB {
 			ep.setLink(tempEp.getLink());
 			ep.setTitle(tempEp.getTitle());
 			ep.setParent(parent);
-			parent.getChildren().add(ep);
+			if (parent != null) parent.getChildren().add(ep);
 			ep.setAuthor(user);
 			ep.setChildren(new ArrayList<DBEpisode>());
 			ep.setDepth(tempEp.getDepth());
 			user.getEpisodes().add(ep);
 			DB.session.beginTransaction();
 			DB.session.save(ep);
-			DB.session.merge(parent);
+			if (parent != null) DB.session.merge(parent);
 			DB.session.merge(user);
 			DB.session.getTransaction().commit();
 		}
 	}
 	
-	private static ArrayList<String> rootIdList = new ArrayList<>();
+	//private static ArrayList<String> rootIdList = new ArrayList<>();
 	
 	public static void generateChildCounts() throws DBException {
-		if (rootIdList.size() == 0) {
-			if (DB.getEpById("4") != null) rootIdList.add("4");
-			if (DB.getEpById("3") != null) rootIdList.add("3");
-			if (DB.getEpById("1") != null) rootIdList.add("1");
-			if (DB.getEpById("2") != null) rootIdList.add("2");
-		}
-		for (String rootId : rootIdList) {
+		Episode[] roots = DB.getRoots();
+		for (Episode ep : roots) {
+			String rootId = ep.id;
 			DB.session.beginTransaction();
 			long start = System.nanoTime();
 			generateChildCounts(rootId);
@@ -304,7 +301,7 @@ public class InitDB {
 			int x = generateChildCounts(child.getId());
 			sum+=x;
 		}
-		//DB.session.beginTransaction();
+		//DB.session.beginTransaction(); // Do this in generateChildCounts() instead (the method that calls this method)
 		ep.setChildCount(sum);
 		DB.session.merge(ep);
 		//DB.session.getTransaction().commit();
@@ -314,7 +311,6 @@ public class InitDB {
 	
 	private static void readStory(String story, String rootId) {
 		Strings.log("Importing " + story);
-		rootIdList.add(rootId);
 		String dirPath = System.getProperty("user.home") + "/fbscrape/" + story + "/";
 		
 		DB.session.beginTransaction();
@@ -621,8 +617,8 @@ public class InitDB {
 			String line = in.nextLine();
 			while (in.hasNext() && line.trim().length() == 0) line = in.nextLine();
 			StringBuilder body = new StringBuilder();
-			body.append(line + "  \n");
-			while (in.hasNext()) body.append(in.nextLine() + "  \n");
+			body.append(line + "\n");
+			while (in.hasNext()) body.append(in.nextLine() + "\n");
 			ep.setBody(body.toString().replace('`', '\''));
 			in.close();
 			return new LegacyEpisodeContainer(ep, author);

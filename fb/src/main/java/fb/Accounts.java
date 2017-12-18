@@ -156,8 +156,11 @@ public class Accounts {
 					for (String createToken : createQueue.keySet()) {
 						Date now = new Date();
 						Date then = createQueue.get(createToken).date;
-						double hours = ((double) (now.getTime() - then.getTime())) / (1000.0 * 60.0 * 60.0);
-						if (hours > 24) deleteTheseTokens.add(createToken); // expires after 24 hours
+						if (then == null) deleteTheseTokens.add(createToken);
+						else {
+							double hours = ((double) (now.getTime() - then.getTime())) / (1000.0 * 60.0 * 60.0);
+							if (hours > 24) deleteTheseTokens.add(createToken); // expires after 24 hours
+						}
 					}
 					for (String createToken : deleteTheseTokens) createQueue.remove(createToken);
 
@@ -231,7 +234,7 @@ public class Accounts {
 	 */
 	public static String getAccount(Cookie fbtoken) {
 		if (DB.READ_ONLY_MODE) return "";
-		String notLoggedIn = "<a href=/fb/createaccount>Create account</a><br/><a href=/fb/login>Log in</a>";
+		String notLoggedIn = "<div class=\"loginstuff\"><a href=/fb/createaccount>Create account</a><br/><a href=/fb/login>Log in</a></div>";
 		if (fbtoken == null) return notLoggedIn;
 		String token = fbtoken.getValue();
 		
@@ -255,7 +258,7 @@ public class Accounts {
 		String response = "Logged in as <a href=/fb/useraccount>" + escape(user.author) + "</a><br/><a href=/fb/logout>Log out</a>";
 		if (user.level>=(byte)100) response +="<br/><a href=/fb/admin>Admin stuff</a>";
 		
-		return response;
+		return "<div class=\"loginstuff\">" + response + "</div>";
 	}
 	/**
 	 * 
@@ -323,6 +326,11 @@ public class Accounts {
 		if (fbtoken == null) return false;
 		UserSession sesh = active.get(fbtoken.getValue());
 		if (sesh == null) return false;
+		try {
+			DB.getUser(sesh.userID);
+		} catch (DBException e) {
+			return false;
+		}
 		sesh.ping();
 		return true;
 	}

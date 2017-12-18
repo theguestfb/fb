@@ -101,6 +101,7 @@ public class Main {
 			System.err.println("No root episodes found");
 			throw new RuntimeException(e);
 		}
+		Strings.log("Postgres connected successfully");
 		Accounts.bump();
 		/*String myid = ("2-216-26-9-1-3-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-"
 				+ "1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-1-2-1-2-1-1-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-1-1-"
@@ -138,16 +139,14 @@ public class Main {
 			}
 		});
 		
-		
-		
 		ResourceConfig resourceConfig = new ResourceConfig(AccountStuff.class, AddStuff.class, AdminStuff.class,
 				GetStuff.class, LegacyStuff.class, RssStuff.class);
 		resourceConfig.register(CharsetResponseFilter.class);
 		Strings.log("Starting server");
 		try {
-			GrizzlyHttpServerFactory.createHttpServer(UriBuilder.fromUri("http://localhost/").port(8080).build(), resourceConfig).start();
+			GrizzlyHttpServerFactory.createHttpServer(UriBuilder.fromUri("http://0.0.0.0/").port(8080).build(), resourceConfig).start();
 			Strings.log("Server started");
-		} catch (IllegalArgumentException | UriBuilderException | IOException e) {
+		} catch (IllegalArgumentException | UriBuilderException | IOException  e) {
 			Strings.log("Could not start server: " + e.getMessage());
 			e.printStackTrace();
 		}

@@ -1,7 +1,8 @@
 package fb.api;
 
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
@@ -12,6 +13,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 
 import fb.Story;
 import fb.db.DB;
@@ -23,11 +25,19 @@ import fb.util.Strings;
 public class GetStuff {
 	
 	public static URI createURI(String url) {
-		try {
-			return new URI("https", Strings.DOMAIN, url, null);
-		} catch (URISyntaxException e) {
-			throw new IllegalArgumentException(e);
-		}
+		URI uri = UriBuilder.fromPath(url).scheme("https").build();
+		System.out.println("Redirecting to " + uri);
+		return uri;
+	}
+	
+	public static URI createURI(String url, HashMap<String,String> params) {
+		UriBuilder builder = UriBuilder.fromPath(url).scheme("https");
+		
+		for (Entry<String,String> e : params.entrySet()) builder.queryParam(e.getKey(), e.getValue());
+		
+		URI uri = builder.build();
+		System.out.println("Redirecting to " + uri);
+		return uri;
 	}
 	
 	/**
@@ -62,12 +72,29 @@ public class GetStuff {
 	@GET
 	@Path("get/{id}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response get(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 0, fbtoken)).build();
+	public Response get(@PathParam("id") String id, @QueryParam("sort") String sortString, @CookieParam("fbtoken") Cookie fbtoken) {
+		int sort = 0;
+		if (sortString != null) switch (sortString.toLowerCase()) {
+		case "newest":
+			sort = 1;
+			break;
+		case "mostfirst":
+			sort = 2;
+			break;
+		case "leastfirst":
+			sort = 3;
+			break;
+		case "random":
+			sort = 4;
+			break;
+		}
+		return Response.ok(Story.getHTML(id, sort, fbtoken)).build();
 	}
 
 	/**
 	 * Gets an episode by its id, newest first sort
+	 * 
+	 * DEPRECATED! Will be removed in a future update
 	 * 
 	 * @param id
 	 *            id of episode (1-7-4-...-3)
@@ -77,11 +104,16 @@ public class GetStuff {
 	@Path("getnewest/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getnewest(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 1, fbtoken)).build();
+		//return Response.ok(Story.getHTML(id, 1, fbtoken)).build();
+		HashMap<String,String> params = new HashMap<>();
+		params.put("sort","newest");
+		return Response.seeOther(createURI("/fb/get/" + id, params)).build();
 	}
 
 	/**
 	 * Gets an episode by its id, most children first sort
+	 * 
+	 * DEPRECATED! Will be removed in a future update
 	 * 
 	 * @param id
 	 *            id of episode (1-7-4-...-3)
@@ -91,11 +123,15 @@ public class GetStuff {
 	@Path("getmostfirst/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getmostfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 2, fbtoken)).build();
-	}
+		//return Response.ok(Story.getHTML(id, 2, fbtoken)).build();
+		HashMap<String,String> params = new HashMap<>();
+		params.put("sort","mostfirst");
+		return Response.seeOther(createURI("/fb/get/" + id, params)).build();	}
 
 	/**
 	 * Gets an episode by its id, least children first sort
+	 * 
+	 * DEPRECATED! Will be removed in a future update
 	 * 
 	 * @param id
 	 *            id of episode (1-7-4-...-3)
@@ -105,11 +141,15 @@ public class GetStuff {
 	@Path("getleastfirst/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getleastfirst(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 3, fbtoken)).build();
-	}
+		//return Response.ok(Story.getHTML(id, 3, fbtoken)).build();
+		HashMap<String,String> params = new HashMap<>();
+		params.put("sort","leastfirst");
+		return Response.seeOther(createURI("/fb/get/" + id, params)).build();	}
 
 	/**
 	 * Gets an episode by its id, least children first sort
+	 * 
+	 * DEPRECATED! Will be removed in a future update
 	 * 
 	 * @param id
 	 *            id of episode (1-7-4-...-3)
@@ -119,8 +159,10 @@ public class GetStuff {
 	@Path("getrandom/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getrandom(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
-		return Response.ok(Story.getHTML(id, 4, fbtoken)).build();
-	}
+		//return Response.ok(Story.getHTML(id, 4, fbtoken)).build();
+		HashMap<String,String> params = new HashMap<>();
+		params.put("sort","random");
+		return Response.seeOther(createURI("/fb/get/" + id, params)).build();	}
 	
 	/**
 	 * Gets an episode by its id, least children first sort

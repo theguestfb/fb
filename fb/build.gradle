@@ -1,4 +1,4 @@
-apply plugin: 'java-library'
+apply plugin: 'java'
 apply plugin:'application'
 repositories {
 	jcenter()
@@ -23,7 +23,7 @@ run {
  	standardInput = System.in
 }
 tasks.withType(JavaExec) {
-    jvmArgs = ['-Xss16m']
+    jvmArgs = ["-Xss16m", "-Xmx2048m"]
 }
 dependencies {
 	

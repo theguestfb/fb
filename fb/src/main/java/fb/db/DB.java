@@ -51,6 +51,7 @@ public class DB {
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}*/
+			Strings.log("Database success");
 		}
 	}
 	
@@ -407,7 +408,6 @@ public class DB {
 				episodeList.add(new Episode(ep));
 				ep = DB.getEpById(ep.getParent().getId());
 			}
-			System.out.println("Returning list");
 			if (ep != null) episodeList.add(new Episode(ep));
 			Collections.reverse(episodeList);
 			
@@ -425,8 +425,8 @@ public class DB {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
 			Root<DBEpisode> root = query.from(DBEpisode.class);			
-			
-			query.select(root).where(cb.notLike(root.get("id"), "%-%"));
+						
+			query.select(root).where(cb.isNull(root.get("parent")));
 			
 			List<DBEpisode> result = session.createQuery(query).list();
 			Episode[] list = new Episode[result.size()];
