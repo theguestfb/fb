@@ -52,6 +52,9 @@ public class DBEpisode {
 	@OneToMany(mappedBy = "parent")
 	private List<DBEpisode> children = new ArrayList<>();
 	
+	@OneToMany(mappedBy = "episode")
+	private List<DBFlaggedEpisode> flags = new ArrayList<>();
+	
 	@Column(columnDefinition = "text")
 	private String body;
 	
@@ -156,6 +159,14 @@ public class DBEpisode {
 		this.children = children;
 	}
 	
+	public List<DBFlaggedEpisode> getFlags() {
+		return flags;
+	}
+
+	public void setFlags(List<DBFlaggedEpisode> flags) {
+		this.flags = flags;
+	}
+
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(id + ": " + title);

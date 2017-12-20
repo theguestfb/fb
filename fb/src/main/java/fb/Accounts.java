@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
@@ -30,6 +31,7 @@ import com.google.gson.Gson;
 import fb.db.DB;
 import fb.db.DB.DBException;
 import fb.objects.Episode;
+import fb.objects.FlaggedEpisode;
 import fb.objects.User;
 import fb.util.Strings;
 
@@ -40,8 +42,8 @@ public class Accounts {
 	
 	private static final String tempPath =System.getProperty("user.home") + "/fbtemp";
 	private static final String sessionPath = tempPath + "/sessions/";
-	private static final String emailQueuePath = tempPath + "/sessions/";
-	private static final String potentialUsersPath = tempPath + "/sessions/";
+	private static final String emailQueuePath = tempPath + "/emailchanges/";
+	private static final String potentialUsersPath = tempPath + "/unverifiedusers/";
 	
 	public static void writeQueuesToFile() {
 		Strings.log("Writing queues to file");
@@ -99,8 +101,8 @@ public class Accounts {
 					String token = f.getName();
 					emailChangeQueue.put(token, ec);
 				}
-			} else Strings.log("Email queue directory " + sessionPath + " exists but is a file");
-		} else Strings.log("Email queue directory " + sessionPath + " does not exist");
+			} else Strings.log("Email queue directory " + emailQueuePath + " exists but is a file");
+		} else Strings.log("Email queue directory " + emailQueuePath + " does not exist");
 		
 		dir = new File(potentialUsersPath);
 		if (dir.exists()) {
@@ -110,8 +112,8 @@ public class Accounts {
 					String token = f.getName();
 					createQueue.put(token, user);
 				}
-			} else Strings.log("Email queue directory " + sessionPath + " exists but is a file");
-		} else Strings.log("Email queue directory " + sessionPath + " does not exist");
+			} else Strings.log("Potential users directory " + potentialUsersPath + " exists but is a file");
+		} else Strings.log("Potential users directory " + potentialUsersPath + " does not exist");
 		Strings.safeDeleteFileDirectory(tempPath);
 		Strings.log("Done reading queues from file");
 	}
@@ -215,11 +217,13 @@ public class Accounts {
 	}
 	
 	public static class PotentialUser {
+		public final String username;
 		public final String email;
 		public final String passwordHash;
 		public final String author;
 		public final Date date;
-		public PotentialUser(String email, String passwordHash, String author) {
+		public PotentialUser(String username, String email, String passwordHash, String author) {
+			this.username = username;
 			this.email = email;
 			this.passwordHash = passwordHash;
 			this.author = author;
@@ -257,6 +261,11 @@ public class Accounts {
 		
 		String response = "Logged in as <a href=/fb/useraccount>" + escape(user.author) + "</a><br/><a href=/fb/logout>Log out</a>";
 		if (user.level>=(byte)100) response +="<br/><a href=/fb/admin>Admin stuff</a>";
+		if (user.level>=(byte)10) response +="<br/><a href=/fb/flagqueue>Flagged episodes</a>";
+		response+="<br/>";
+		if (user.level != ((byte)1)) response+="<br/><a href=/fb/becomenormal>Become a normal user</a>";
+		if (user.level != ((byte)10)) response+="<br/><a href=/fb/becomemod>Become a moderator</a>";
+		if (user.level != ((byte)100)) response+="<br/><a href=/fb/becomeadmin>Become an admin</a>";
 		
 		return "<div class=\"loginstuff\">" + response + "</div>";
 	}
@@ -268,10 +277,12 @@ public class Accounts {
 	 */
 	public static String getUserPage(String id, Cookie fbtoken) {
 		User user;
+		if (id == null || id.length() == 0) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User ID " + id + " does not exist");
+		id = id.toLowerCase();
 		try {
 			user = DB.getUser(id);
 		} catch (DBException e) {
-			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User UD " + id + " does not exist");
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "User ID " + id + " does not exist");
 		}
 		StringBuilder sb = new StringBuilder();
 		for (Episode ep : user.episodes) {
@@ -294,6 +305,36 @@ public class Accounts {
 		}
 		String bio = Story.formatBody(user.bio);
 		return Strings.getFile("profilepage.html", fbtoken).replace("$AUTHOR", user.author).replace("$BODY", bio).replace("$EPISODES", sb.toString());
+	}
+	
+	public static String becomeNormal(Cookie token) {
+		try {
+			User user = getUser(token);
+			DB.changeUserLevel(user.id, (byte)1);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You are now just a regular user.");
+		} catch (DBException | FBLoginException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You must be logged in to do that");
+		}
+	}
+	
+	public static String becomeMod(Cookie token) {
+		try {
+			User user = getUser(token);
+			DB.changeUserLevel(user.id, (byte)10);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You are now a moderator.<br/>Please only use your power for testing, not abuse.");
+		} catch (DBException | FBLoginException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You must be logged in to do that");
+		}
+	}
+	
+	public static String becomeAdmin(Cookie token) {
+		try {
+			User user = getUser(token);
+			DB.changeUserLevel(user.id, (byte)100);
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You are now an admin.<br/>Please only use your power for testing, not abuse.");
+		} catch (DBException | FBLoginException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "You must be logged in to do that");
+		}
 	}
 	
 	/**
@@ -345,10 +386,11 @@ public class Accounts {
 	public static String login(String email, String password) throws FBLoginException {
 		User user;
 		try {
-			user = DB.getUserByEmail(email);
-			if (!DB.checkPassword(user.id, password)) throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
+			email = email.toLowerCase();
+			user = email.contains("@") ? DB.getUserByEmail(email) : DB.getUser(email);
+			if (!DB.checkPassword(user.id, password)) throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect username/email or password, or username/email does not exist"));
 		} catch (DBException e) {
-			throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect email or password, or email does not exist"));
+			throw new FBLoginException(Strings.getFile("loginform.html", null).replace("$EXTRA", "Incorrect username/email or password, or username/email does not exist"));
 		}
 		
 		String newToken = newToken(active);
@@ -382,7 +424,7 @@ public class Accounts {
 		if (createQueue.containsKey(createToken)) {
 			PotentialUser createUser = createQueue.remove(createToken);
 			try {
-				DB.addUser(createUser.email, createUser.passwordHash, createUser.author);
+				DB.addUser(createUser.username, createUser.email, createUser.passwordHash, createUser.author);
 			} catch (DBException e) { 
 				return Strings.getFile("generic.html",null).replace("$EXTRA", "Email address associated with that confirmation token is already verified");
 			}
@@ -398,17 +440,29 @@ public class Accounts {
 	 * @param author author name
 	 * @return Success as plaintext or form with error 
 	 */
-	public static String create(String email, String password, String password2, String author) {
+	public static String create(String email, String password, String password2, String author, String username) {
 		{
 			if (email == null || email.length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address is required");
+			
+			email = email.toLowerCase();
+			
 			if (DB.emailInUse(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Email address " + email + " is already in use");
 			if (!EmailValidator.getInstance().isValid(email)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Invalid email address " + email);
 			if (!password.equals(password2)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Passwords do not match");
 			if (password.length() < 8) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Password must be at least 8 characters long");
-			if (author == null || author.trim().length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Author name is required"); 
+			if (author == null || author.trim().length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Author name is required");
+			if (username == null || username.length() == 0) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Username is required");
+			username = username.toLowerCase();
+			if (DB.usernameInUse(username)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Username " + username + " is already in use");
+			for (char c : username.toCharArray()) if (!allowedUsernameChars.contains(c)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Username may not contain " + c);
+			try {
+			for (PotentialUser pu : createQueue.values()) {
+				if (pu.username.equals(username)) return Strings.getFile("createaccountform.html", null).replace("$EXTRA", "Username " + username + " is already in use");
+			}
+			} catch (Exception e) { e.printStackTrace(); }
 		}
 		String createToken = newToken(createQueue);
-		PotentialUser createUser = new PotentialUser(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
+		PotentialUser createUser = new PotentialUser(username, email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
 		createQueue.put(createToken, createUser);
 		if (!sendEmail(email, "Confirm your Fiction Branches account", 
 				"<html><body>Please click the following link (or copy/paste it into your browser) to verify your account: <a href=https://" + Strings.DOMAIN + "/fb/confirmaccount/" + createToken + ">https://" + Strings.DOMAIN + "/fb/confirmaccount/" + createToken + "</a> (This link is only good for 24 hours.)</body></html>")) {
@@ -611,7 +665,59 @@ public class Accounts {
 		return Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "User " + userID + " level successfully changed");
 	}
 	
+	public static String getFlagQueue(Cookie fbtoken) {
+		User user;
+		try {
+			user = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e ) {
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
+		}
+		if (user.level<10) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be a mod to do that");
+		FlaggedEpisode[] arr = DB.getFlags();
+		StringBuilder sb = new StringBuilder();
+		sb.append("<h1> Flagged episodes</h1>\n");
+		for (FlaggedEpisode flag : arr) {
+			sb.append("<a href=/fb/getflag/" + flag.id + ">" + Strings.escape(flag.episode.link) + "</a> flagged by <a href=/fb/user/" + flag.user.id + ">" + Strings.escape(flag.user.author) + "</a> on " + Strings.outputDateFormat(flag.date) + "<br/>\n");
+		}
+		return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", sb.toString());
+	}
 	
+	public static String getFlag(long id, Cookie fbtoken) {
+		User user;
+		try {
+			user = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e ) {
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "You must be logged in to do that");
+		}
+		if (user.level<10) return Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be a mod to do that");
+		FlaggedEpisode flag;
+		try {
+			flag = DB.getFlag(id);
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", fbtoken).replace("$EXTRA",e.getMessage());
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("<h1> Flagged episode</h1>\n");
+		sb.append("<a href=/fb/get/" + flag.episode.id + ">" + Strings.escape(flag.episode.link) + "</a> flagged by <a href=/fb/user/" + flag.user.id + ">" + Strings.escape(flag.user.author) + "</a> on " + Strings.outputDateFormat(flag.date) + "<br/>\n");
+		sb.append("<a href=/fb/clearflag/" + flag.id + ">Delete this flag</a><br/>\n");
+		sb.append("<p>" + Strings.escape(flag.text) + "</p>");
+		return Strings.getFile("generic.html", fbtoken).replace("$EXTRA",sb.toString());
+	}
+	
+	public static void clearFlag(long id, Cookie fbtoken) throws FBLoginException {
+		User user;
+		try {
+			user = Accounts.getUser(fbtoken);
+		} catch (FBLoginException e ) {
+			throw new FBLoginException(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "You must be logged in to do that"));
+		}
+		if (user.level<10) throw new FBLoginException(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be a mod to do that"));
+		try {
+			DB.clearFlag(id);
+		} catch (DBException e) {
+			throw new FBLoginException(Strings.getFile("generic.html", fbtoken).replace("$EXTRA",e.getMessage()));
+		}
+	}
 	
 	/**
 	 * Generate a new 32-char token, ensuring that the map does not contain it as a key
@@ -663,5 +769,16 @@ public class Accounts {
 			return false;
 		}
 		return true;
+	}
+	
+	private static HashSet<Character> allowedUsernameChars;
+	static {
+		allowedUsernameChars = new HashSet<>();
+		for (char c = '0'; c<='9'; ++c) allowedUsernameChars.add(c);
+		for (char c = 'a'; c<='z'; ++c) allowedUsernameChars.add(c);
+		for (char c = 'A'; c<='Z'; ++c) allowedUsernameChars.add(c);
+		allowedUsernameChars.add('-');
+		allowedUsernameChars.add('_');
+		allowedUsernameChars.add('.');
 	}
 }

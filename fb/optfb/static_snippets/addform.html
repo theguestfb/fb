@@ -2,6 +2,7 @@
 <head>
 <script src='https://www.google.com/recaptcha/api.js'></script>
 <title>Fiction Branches</title>
+<link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/$STYLE.css">
 <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
 <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
@@ -9,19 +10,7 @@
 <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/favicon-120x120.png">
 
-<script>
-function toggleFormatting() {
-    var x = document.getElementById("formattingDiv");
-    var button = document.getElementById("formatButton");
-    if (x.style.display === "none") {
-        x.style.display = "block";
-        button.value = "Hide Formatting Help";
-    } else {
-        x.style.display = "none";
-        button.value = "Show Formatting Help";
-    }
-}
-</script>
+<script type="text/javascript" src="/static/formatting.js"></script>
 
 </head>
 <body>
@@ -41,52 +30,7 @@ $ACCOUNT
 		<p>
 			<input type="button" id="formatButton" onclick="toggleFormatting()" value="Show Formatting Help"></input><br/>
 			<div id="formattingDiv" style="display:none">
-			<br/>
-			<hr/>
-				<h1>Formatting help</h1>
-
-HTML tags will be escaped and presented as entered in the episode (and thus should <strong><em>not</em></strong> be used), but it is possible to do simple text formatting using basic Markdown:
-<br />
-<br />
-<br/>
-<!--You can create headers like: <br/><br/>
-# Header 1<br/>
-## Header 2<br/>
-### Header 3<br/>
-#### Header 4<br/>
-<br/>
-They will output like:<br/>
-<h1>Header 1</h1>
-<h2>Header 2</h2>
-<h3>Header 3</h3>
-<h4>Header 4</h4>
-<br/>
-<br/>
-<br/>-->
-Text surrounded by single *asterisks* or _underscores_ will become <em>italicized</em>.
-<br /><br />
-Text surrounded by double **asterisks** or __underscores__ will become <strong>bold</strong>.
-<br /><br />
-Text surrounded by double **asterisks** or __underscores__ will become <strong>bold</strong>.
-<br /><br />
-To insert a link: <br/>
-[This is a link](https://google.com) becomes <a href="https://google.com">This is a link</a>.<br/>
-Or just us a bare link: https://google.com becomes <a href="https://google.com">https://google.com</a>.<br/>
-<br /><br />
-To embed an image in the episode: <br/>
-![alt text is optional](https://test.fictionbranches.net/images/fblogo.png) becomes:
-<br/><img src="https://test.fictionbranches.net/images/fblogo.png" alt="alt text is optional"/><br/>
-<br />
-<br/>
-<br/>
-<em><strong>NOTE:</strong></em><br/> in order to insert newlines into your episode, you must do one of:<br/>
-<ul>
-<li>end the previous line with two spaces<br/></li>
-<li>use <em>two</em> newlines<br/></li>
-</ul>
-			<hr/>
-			<br/>
-			<br/>
+                <iframe id="formattingFrame" src=/static/formatting.html frameborder="0" scrolling="no" style="position: relative; width: 100%;"></iframe>
 			</div>
 			
 			Body<br/><textarea name= "body" placeholder="Body" rows= "40"></textarea>

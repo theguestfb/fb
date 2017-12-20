@@ -114,7 +114,7 @@ public class InitDB {
 			System.out.println("enter your password:");
 			String password = in.nextLine();
 			
-			String phoenixID = DB.addUser(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
+			String phoenixID = DB.addUser("phoenix", email, BCrypt.hashpw(password, BCrypt.gensalt(10)), author);
 			DB.changeUserLevel(phoenixID, (byte)100);
 		}
 				
@@ -185,7 +185,7 @@ public class InitDB {
 			TempUser tempUser = new Gson().fromJson(json, TempUser.class);
 			String userId;
 			if (DB.emailInUse(tempUser.getEmail())) userId = DB.getUserByEmail(tempUser.getEmail()).id;
-			else userId = DB.addUser(tempUser.getEmail(), tempUser.getHashedPassword(), tempUser.getAuthor());
+			else userId = DB.addUser(tempUser.getId(), tempUser.getEmail(), tempUser.getHashedPassword(), tempUser.getAuthor());
 
 			DBUser user = DB.session.get(DBUser.class, userId);
 			user.setBio(tempUser.getBio());
@@ -276,12 +276,8 @@ public class InitDB {
 	 * @throws IOException 
 	 */
 	static int count(String id) {
-		DBEpisode ep;
-		try {
-			ep = DB.getEpById( id);
-		} catch (DBException e) {
-			throw new RuntimeException(e);
-		}
+		DBEpisode ep = DB.getEpById( id);
+
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
@@ -289,12 +285,7 @@ public class InitDB {
 	}
 	
 	private static int generateChildCounts(String id) {
-		DBEpisode ep;
-		try {
-			ep = DB.getEpById(id);
-		} catch (DBException e) {
-			throw new RuntimeException(e);
-		}
+		DBEpisode ep = DB.getEpById(id);
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) {
@@ -460,12 +451,8 @@ public class InitDB {
 				user.setPassword("disabled");
 				user.setBio("");
 				Strings.log("ID must exist, but doesn't: " + childId);
-				DBEpisode parent;
-				try {
-					parent = DB.getEpById( parentId);
-				} catch (DBException e) {
-					throw new RuntimeException(e);
-				}
+				DBEpisode parent = DB.getEpById( parentId);
+
 				child.setId(childId);
 				child.setParent(parent);
 				
@@ -485,12 +472,7 @@ public class InitDB {
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
 								
-				DBEpisode parent;
-				try {
-					parent = DB.getEpById( parentId);
-				} catch (DBException e) {
-					throw new RuntimeException(e);
-				}
+				DBEpisode parent = DB.getEpById( parentId);
 				
 				DBUser user = new DBUser();
 				{

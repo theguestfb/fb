@@ -2,7 +2,6 @@ package fb.db;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import fb.json.TempUser;
 import fb.objects.Episode;
+import fb.objects.FlaggedEpisode;
 import fb.objects.User;
 import fb.util.Comparators;
 import fb.util.Strings;
@@ -42,6 +42,7 @@ public class DB {
 			
 			configuration.addAnnotatedClass(DBEpisode.class);
 			configuration.addAnnotatedClass(DBUser.class);
+			configuration.addAnnotatedClass(DBFlaggedEpisode.class);
 
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
@@ -56,6 +57,7 @@ public class DB {
 	}
 	
 	public static void closeSession() {
+		synchronized (dbLock) {
 		session.close();
 		sessionFactory.close();
 		/*try {
@@ -64,6 +66,7 @@ public class DB {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}*/
+		}
 	}
 	
 	public static class DBException extends Exception {
@@ -79,52 +82,53 @@ public class DB {
 		}
 	}
 	
-	static DBEpisode getEpById(String id) throws DBException {
+	/**
+	 * 
+	 * @param id
+	 * @return null if episodes does not exist
+	 */
+	static DBEpisode getEpById(String id) {
 		synchronized (dbLock) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
 			Root<DBEpisode> root = query.from(DBEpisode.class);
 			query.select(root).where(cb.equal(root.get("id"), id));
-			List<DBEpisode> result = session.createQuery(query).list();
-			if (result.size() == 0) return null;
-			else if (result.size() > 1) {
-				StringBuilder sb = new StringBuilder();
-				for (DBEpisode ep : result) sb.append(ep.getGeneratedId() + " ");
-				throw new RuntimeException("Multiple episodes have matching id: " + id + " " + sb);
-			} else return result.get(0);
+			DBEpisode result = session.createQuery(query).uniqueResult();
+			return result;
 		}
 	}
 	
-	static DBUser getUserById(String id) throws DBException {
+	/**
+	 * Returns null if id does not exist
+	 * @param id
+	 * @return
+	 */
+	static DBUser getUserById(String id) {
 		synchronized (dbLock) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
 			Root<DBUser> root = query.from(DBUser.class);
 			query.select(root).where(cb.equal(root.get("id"), id));
-			List<DBUser> result = session.createQuery(query).list();
-			if (result.size() == 0) return null;
-			else if (result.size() > 1) {
-				StringBuilder sb = new StringBuilder();
-				for (DBUser ep : result) sb.append(ep.getId() + " ");
-				throw new RuntimeException("Multiple users have matching id: " + id + " " + sb);
-			} else return result.get(0);
+			DBUser result = session.createQuery(query).uniqueResult();
+			return result;
 		}
 	}
 	
+	/**
+	 * 
+	 * @param email
+	 * @return
+	 * @throws DBException if email not in use
+	 */
 	public static User getUserByEmail(String email) throws DBException {
 		synchronized (dbLock) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
 			Root<DBUser> root = query.from(DBUser.class);
 			query.select(root).where(cb.equal(root.get("email"), email));
-			List<DBUser> result = session.createQuery(query).list();
-			if (result.size() == 0)
-				throw new DBException("Email not found: " + email);
-			else if (result.size() > 1) {
-				StringBuilder sb = new StringBuilder();
-				for (DBUser ep : result) sb.append(ep.getId() + " ");
-				throw new RuntimeException("Multiple users have matching email: " + email + " " + sb);
-			} else return new User(result.get(0));
+			DBUser result = session.createQuery(query).uniqueResult();
+			if (result == null) throw new DBException("Email not found: " + email);
+			else return new User(result);
 		}
 	}
 	
@@ -169,10 +173,6 @@ public class DB {
 			child = new DBEpisode();
 			
 			String childId = id + "-" + (parent.getChildren().size()+1);
-			if (childId.length() > 4096) {
-				session.getTransaction().commit();
-				throw new DBException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
-			}
 			child.setId(childId);
 			child.setDepth(InitDB.keyToArr(childId).length);
 			
@@ -323,6 +323,7 @@ public class DB {
 	 * @throws DBException if id not found
 	 */
 	public static Episode getEpByLegacyId(String oldId) throws DBException {	
+		synchronized (dbLock) {
 		CriteriaBuilder cb = session.getCriteriaBuilder();
 		CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
 		Root<DBEpisode> root = query.from(DBEpisode.class);
@@ -338,6 +339,7 @@ public class DB {
 			throw new RuntimeException("Multiple episodes have matching id: " + oldId + " " + sb);
 		} else
 			return new Episode(result.get(0));
+		}
 	}
 	
 	/**
@@ -389,6 +391,7 @@ public class DB {
 			
 			Predicate depthPredicate = cb.lt(root.get("depth"), maxDepth);
 			
+			
 			query.select(root).where(cb.and(idPredicate,depthPredicate));
 			
 			List<DBEpisode> result = session.createQuery(query).list();
@@ -400,27 +403,42 @@ public class DB {
 	}
 	
 	public static Episode[] getPath(String id) throws DBException {
+		Episode[] episodeList;
 		synchronized (dbLock) {
-			DBEpisode ep = DB.getEpById(id);
-			if (ep == null) throw new DBException("Not found: " + id);
-			ArrayList<Episode> episodeList = new ArrayList<>(ep.getDepth());
-			while (ep != null && ep.getParent() != null && !ep.getParent().getId().equals(ep.getId())) {
-				episodeList.add(new Episode(ep));
-				ep = DB.getEpById(ep.getParent().getId());
-			}
-			if (ep != null) episodeList.add(new Episode(ep));
-			Collections.reverse(episodeList);
+			if (DB.getEpById(id) == null) throw new DBException("Not found: " + id);
 			
-			Episode[] ret = new Episode[episodeList.size()];
-			ret = episodeList.toArray(ret);
-			return ret;
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
+			Root<DBEpisode> root = query.from(DBEpisode.class);
 			
+			String[] ids = getPathIds(id);
+			Predicate[] preds = new Predicate[ids.length];
+			for (int i=0; i<ids.length; ++i) preds[i] = cb.equal(root.get("id"), ids[i]);
+			
+			query.select(root).where(cb.or(preds));
+			
+			List<DBEpisode> result = session.createQuery(query).list();
+			
+			episodeList = new Episode[result.size()];
+			for (int i=0; i<result.size(); ++i) episodeList[i] = new Episode(result.get(i));
 		}
+		Arrays.sort(episodeList, Comparators.episodeKeyComparator);
+		return episodeList;
+	}
+	
+	private static String[] getPathIds(String id) {
+		String[] arr = id.split("-");
+		String[] ret = new String[arr.length];
+		for (int i=0; i<arr.length; ++i) {
+			StringBuilder sb = new StringBuilder();
+			for (int j=0; j<=i; ++j) sb.append(arr[j] + "-");
+			ret[i] = sb.substring(0, sb.length()-1);
+		}
+		return ret;
 	}
 	
 	public static Episode[] getRoots() throws DBException {
 		synchronized(dbLock) {
-			//ArrayList<Episode> list = new ArrayList<>();
 			
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
@@ -450,7 +468,7 @@ public class DB {
 	 * @return user ID of new user
 	 * @throws DBException 
 	 */
-	public static String addUser(String email, String password, String author) throws DBException {
+	public static String addUser(String username, String email, String password, String author) throws DBException {
 		synchronized (dbLock) {
 		
 			if (emailInUse(email)) throw new DBException("Email " + email + " is already in use");
@@ -462,18 +480,13 @@ public class DB {
 			user.setEmail(email);
 			user.setBio("");
 			user.setPassword(password);
-		
-			String id = newUserId();
-			// Make sure id doesn't already exist
-			while (getUserById( id) != null) id = newUserId();
-			
-			user.setId(id);
+			user.setId(username);
 			
 			session.beginTransaction();
 			session.save(user);
 			session.getTransaction().commit();
 			
-			return id;
+			return username;
 		}
 	}
 	
@@ -587,6 +600,12 @@ public class DB {
 		}
 	}
 	
+	public static boolean usernameInUse(String username) {
+		synchronized(dbLock) {
+			return getUserById(username) != null;
+		}
+	}
+	
 	/**
 	 * Changes a user's email address in the db
 	 * @param userId
@@ -615,23 +634,98 @@ public class DB {
 	 * @throws DBException if id not found
 	 */
 	public static boolean checkPassword(String id, String password) throws DBException {
+		String hashedPassword;
 		synchronized(dbLock) {
 			DBUser user = getUserById( id);
 			if (user == null) throw new DBException("User does not exist");
-			return BCrypt.checkpw(password, user.getPassword());
+			if (user.getEmail() == null) throw new DBException("You may not log in to a legacy account");
+			hashedPassword = user.getPassword();
+		}
+		boolean result;
+		try {
+			result = BCrypt.checkpw(password, hashedPassword);
+		} catch (Exception e) {
+			result = false;
+		}
+		return result;
+	}
+	
+	public static void flagEp(String episodeId, String authorId, String flagText) throws DBException {
+		Date flagDate;
+		synchronized (dbLock) {
+			DBEpisode parent = getEpById(episodeId);
+			DBUser author = getUserById(authorId);
+
+			if (parent == null) throw new DBException("Episode not found: " + episodeId);
+			if (author == null) throw new DBException("Author does not exist");
+
+			DBFlaggedEpisode flag = new DBFlaggedEpisode();
+			
+			flag.setText(flagText);
+			flag.setDate(new Date());
+			flag.setEpisode(parent);
+			flag.setUser(author);
+			
+			
+			author.getFlags().add(flag);
+			parent.getFlags().add(flag);
+			
+			flagDate = flag.getDate();
+			
+		
+			session.beginTransaction();
+			
+			session.save(flag);
+			session.merge(parent);
+			session.merge(author);
+			session.getTransaction().commit();
+		}
+		Strings.log(String.format("Flag: <%s> %s %s", authorId, episodeId, flagDate));
+	}
+	
+	public static FlaggedEpisode[] getFlags() {
+		FlaggedEpisode[] ret;
+		synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBFlaggedEpisode> query = cb.createQuery(DBFlaggedEpisode.class);
+			Root<DBFlaggedEpisode> root = query.from(DBFlaggedEpisode.class);
+			query.select(root);
+			
+			List<DBFlaggedEpisode> result = session.createQuery(query).list();
+			ret = new FlaggedEpisode[result.size()];
+			for (int i=0; i<ret.length; ++i) ret[i] = new FlaggedEpisode(result.get(i));
+		}
+		Arrays.sort(ret, new Comparator<FlaggedEpisode>() {
+			public int compare(FlaggedEpisode a, FlaggedEpisode b) {
+				return a.date.compareTo(b.date);
+			}
+		});
+		return ret;
+	}
+	
+	public static FlaggedEpisode getFlag(long id) throws DBException {
+		synchronized (dbLock) {
+			DBFlaggedEpisode flag = session.get(DBFlaggedEpisode.class, id);
+			if (flag == null) throw new DBException("Flag not found: " + id);
+			return new FlaggedEpisode(flag);
 		}
 	}
 	
-	private static ArrayList<Character> userIdChars = new ArrayList<>();
+	public static void clearFlag(long id) throws DBException {
+		synchronized (dbLock) {
+			DBFlaggedEpisode flag = session.get(DBFlaggedEpisode.class, id);
+			if (flag == null) throw new DBException("Flag not found: " + id);
+			DBEpisode ep = flag.getEpisode();
+			DBUser user = flag.getUser();
+			ep.getFlags().remove(flag);
+			user.getFlags().remove(flag);
+			session.beginTransaction();
+			session.delete(flag);
+			session.merge(ep);
+			session.merge(user);
+			session.getTransaction().commit();
+		}
+	}
+	
 	public static Random r = new Random();
-	static { // this could be added to the beginning of the static block at the top of this file, but it's fine here since it only affects userIdChars
-		for (char c='a'; c<='z'; ++c) userIdChars.add(c);
-		for (char c='A'; c<='Z'; ++c) userIdChars.add(c);
-		for (char c='0'; c<='9'; ++c) userIdChars.add(c);
-	}
-	private static String newUserId() {
-		StringBuilder sb = new StringBuilder();
-		for (int i=0; i<16; ++i) sb.append(userIdChars.get(r.nextInt(userIdChars.size())));
-		return sb.toString();
-	}
 }

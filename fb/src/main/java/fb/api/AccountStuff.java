@@ -22,6 +22,27 @@ import fb.util.Strings;
 public class AccountStuff {
 	
 	@GET
+	@Path("becomeadmin")
+	@Produces(MediaType.TEXT_HTML)
+	public Response becomeAdmin(@CookieParam("fbtoken") Cookie fbtoken) {		
+		return Response.ok(Accounts.becomeAdmin(fbtoken)).build();
+	}
+	
+	@GET
+	@Path("becomemod")
+	@Produces(MediaType.TEXT_HTML)
+	public Response becomeMod(@CookieParam("fbtoken") Cookie fbtoken) {		
+		return Response.ok(Accounts.becomeMod(fbtoken)).build();
+	}
+	
+	@GET
+	@Path("becomenormal")
+	@Produces(MediaType.TEXT_HTML)
+	public Response becomeNormal(@CookieParam("fbtoken") Cookie fbtoken) {		
+		return Response.ok(Accounts.becomeNormal(fbtoken)).build();
+	}
+	
+	@GET
 	@Path("user/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response user(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {		
@@ -131,7 +152,7 @@ public class AccountStuff {
 	@POST
 	@Path("createaccountpost")
 	@Produces(MediaType.TEXT_HTML)
-	public Response createaccountpost(@FormParam("email") String email, @FormParam("password") String password, @FormParam("password2") String password2, 
+	public Response createaccountpost(@FormParam("email") String email, @FormParam("username") String username, @FormParam("password") String password, @FormParam("password2") String password2, 
 			@FormParam("author") String author, @FormParam("g-recaptcha-response") String google) {
 		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
@@ -143,7 +164,7 @@ public class AccountStuff {
 			default: return Response.ok(response).build();
 			}
 		}
-		return Response.ok(Accounts.create(email, password, password2, author)).build();
+		return Response.ok(Accounts.create(email, password, password2, author, username)).build();
 	}
 	
 	@GET

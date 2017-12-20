@@ -7,6 +7,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
@@ -34,6 +35,44 @@ public class AdminStuff {
 		}
 		if (user.level<100) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be an admin to do that")).build();
 		return Response.ok(Strings.getFile("adminform.html", fbtoken).replace("$EXTRA", "")).build();
+	}
+	
+	@GET
+	@Path("flagqueue")
+	@Produces(MediaType.TEXT_HTML)
+	public Response flagqueue(@CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Accounts.getFlagQueue(fbtoken)).build();
+	}
+	
+	@GET
+	@Path("getflag/{id}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response getflag(@PathParam("id") String idString, @CookieParam("fbtoken") Cookie fbtoken) {
+		long id;
+		try {
+			id = Long.parseLong(idString);
+		} catch (NumberFormatException e) {
+			return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Flag not found: " + idString)).build();
+		}
+		return Response.ok(Accounts.getFlag(id, fbtoken)).build();
+	}
+	
+	@GET
+	@Path("clearflag/{id}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response clearflag(@PathParam("id") String idString, @CookieParam("fbtoken") Cookie fbtoken) {
+		long id;
+		try {
+			id = Long.parseLong(idString);
+		} catch (NumberFormatException e) {
+			return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Flag not found: " + idString)).build();
+		}
+		try {
+			Accounts.clearFlag(id, fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok(e.getMessage()).build();
+		}
+		return Response.seeOther(GetStuff.createURI("/fb/flagqueue")).build();
 	}
 	
 	@POST

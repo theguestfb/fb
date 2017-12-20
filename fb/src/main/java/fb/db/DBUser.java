@@ -40,6 +40,9 @@ public class DBUser {
 	
 	@OneToMany(mappedBy = "editor")
 	private List<DBEpisode> editors = new ArrayList<>();
+	
+	@OneToMany(mappedBy = "user")
+	private List<DBFlaggedEpisode> flags = new ArrayList<>();
 
 	public String getId() {
 		return id;
@@ -119,6 +122,14 @@ public class DBUser {
 
 	public void setEditors(List<DBEpisode> editors) {
 		this.editors = editors;
+	}
+
+	public List<DBFlaggedEpisode> getFlags() {
+		return flags;
+	}
+
+	public void setFlags(List<DBFlaggedEpisode> flags) {
+		this.flags = flags;
 	}
 	
 }

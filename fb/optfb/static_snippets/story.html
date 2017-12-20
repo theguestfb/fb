@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <title>$TITLE</title>
+<link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/$STYLE.css">
 <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
 <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
@@ -21,20 +22,19 @@ $ACCOUNT
 	<h1>$TITLE</h1>
 	<p>Episode submitted by $AUTHOR on $DATE</p>
 	<p><a href=$PARENTID>Return to Parent Episode</a> $MODIFY<br/>
-	<a href="/fb/path/$ID">Path to here</a><br/>
-	<a href="/fb/outline/$ID">Outline from here</a><br/>
-	<a href="/fb/complete/$ID">View story so far</a></p>
+	</p>
 	<hr />
 	$BODY
 	<hr />
 	<select name="sortselect" onchange="location = this.value;">
 		<option value="">Choose sort order</option>
-		<option value="../get/$ID">Oldest first (default)</option>
-		<option value="../getnewest/$ID">Newest first</option>
-		<option value="../getmostfirst/$ID">Children (descending)</option>
-		<option value="../getleastfirst/$ID">Children (ascending)</option>
-		<option value="../getrandom/$ID">Random</option>
+		<option value="/fb/get/$ID?sort=oldest">Oldest first (default)</option>
+		<option value="/fb/get/$ID?sort=newest">Newest first</option>
+		<option value="/fb/get/$ID?sort=mostfirst">Children (descending)</option>
+		<option value="/fb/get/$ID?sort=leastfirst">Children (ascending)</option>
+		<option value="/fb/get/$ID?sort=random">Random</option>
 	</select>
+	Current sort: <em>$SORTORDER</em>
 	<hr />
 	<p>$ADDEP</p>
 	<hr/>

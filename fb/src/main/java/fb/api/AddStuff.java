@@ -124,4 +124,37 @@ public class AddStuff {
 		}
 		
 	}
+	
+	@GET
+	@Path("flag/{id}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response flag(@PathParam("id") String id, @CookieParam("fbtoken") Cookie fbtoken) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
+		return Response.ok(Story.flagForm(id, fbtoken)).build();
+	}
+	
+	@POST
+	@Path("flagpost/{id}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response flagpost(@PathParam("id") String id, @FormParam("body") String body,
+			@CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
+		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		
+		if (Strings.RECAPTCHA) {
+			String response = Strings.checkGoogle(google);
+			switch(response) {
+			case "true": break;
+			case "false": return Response.ok("reCAPTCHA failed").build();
+			default: return Response.ok(response).build();
+			}
+		}
+		try {
+			Story.flagPost(id, body, fbtoken);
+			return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "Episode successfully flagged")).build();
+		} catch (EpisodeException e) {
+			return Response.ok(e.getMessage()).build();
+		}
+		
+	}
 }

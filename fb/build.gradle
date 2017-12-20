@@ -6,6 +6,7 @@ repositories {
 mainClassName = 'fb.Main'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
 jar {
 	from {
 		(configurations.runtime).collect {

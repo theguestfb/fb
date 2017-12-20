@@ -9,6 +9,9 @@
 <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
 <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/favicon-120x120.png">
+
+<script type="text/javascript" src="/static/formatting.js"></script>
+
 </head>
 <body>
 
@@ -19,19 +22,14 @@ $ACCOUNT
 </div>
 
 	<h4><b>ANY EPISODES ADDED TO THE TEST SITE <i><u>WILL</i></u> BE DELETED IN THE NEAR FUTURE</b></h4>
-	<h1>Create an account</h1>
-	<form action= "/fb/changeemailpost" method="post">
+	<h1>Flagging episode $TITLE</h1>
+	<form action= "../flagpost/$ID" method="post">
 		<p>
-			New email: <input type= "text" name= "email" size="100" placeholder="email"/><br/>
-			(this will never be publicly displayed or shared with anyone)
-		</p>
-		<p>
-			Current password: <input type= "password" name= "password" size="100"/>
+			<textarea name= "body" placeholder="Tell us why you are flagging this episode" rows= "40"></textarea>
 		</p>
 		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
 		<input type= "submit" value= "Submit"/>
 	</form>
-	<p>$EXTRA</p>
 <br/><br/><br/>
 <p><a href="bitcoin:1GcTjtuchu1d4XnYNWHpyAHihot4NWV7n5">
 <img width=80 src="/images/bitcoin.png" alt="Donate Bitcoin" /></a></p>

@@ -54,61 +54,72 @@ public class Story {
 		} catch (DBException e) {
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
-			StringBuilder sb = new StringBuilder();
-			ArrayList<ChildEpisode> children = new ArrayList<>(Arrays.asList(ep.children));
-			switch (sort) {
-			case 0:
-			default:
-				Collections.sort(children, Comparators.keyComparator);
-				break;
-			case 1:
-				Collections.sort(children, Comparators.reverseKeyComparator);
-				break;
-			case 2:
-				Collections.sort(children, Comparators.childrenMostLeastComparator);
-				break;
-			case 3:
-				Collections.sort(children, Comparators.childrenLeastMostComparator);
-				break;
-			case 4:
-				Collections.shuffle(children);
-				break;
-			}
-			for (ChildEpisode child : children) {
-				sb.append("<p><a href=" + child.id + ">" + escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
-			}
+		StringBuilder sb = new StringBuilder();
+		ArrayList<ChildEpisode> children = new ArrayList<>(Arrays.asList(ep.children));
+		String sortOrder;
+		switch (sort) {
+		case 0:
+		default:
+			Collections.sort(children, Comparators.keyComparator);
+			sortOrder = "Oldest first (default)";
+			break;
+		case 1:
+			Collections.sort(children, Comparators.reverseKeyComparator);
+			sortOrder = "Newest first";
+			break;
+		case 2:
+			Collections.sort(children, Comparators.childrenMostLeastComparator);
+			sortOrder = "Children (descending)";
+			break;
+		case 3:
+			Collections.sort(children, Comparators.childrenLeastMostComparator);
+			sortOrder = "Children (ascending)";
+			break;
+		case 4:
+			Collections.shuffle(children);
+			sortOrder = "Random";
+			break;
+		}
+		for (ChildEpisode child : children) {
+			sb.append("<p><a href=" + child.id + ">" + escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
+		}
+		
+		String addEp, modify="";			
 			
-			String addEp, modify="";			
+		try {
+			User currentUser = Accounts.getUser(token);
+			if (ep.authorId.equals(currentUser.id)) modify = "<br/><br/><a href=/fb/modify/" + id + ">Modify your episode</a>";
+			else if (currentUser.level >= ((byte)10)) modify = "<br/><br/><a href=/fb/modify/" + id + ">Modify as moderator</a>";
+			else modify = "<br/><br/><a href=/fb/flag/" + id + ">Flag this episode</a>";
+			addEp = "<a href=../add/" + id + ">Add a new episode</a>";
+			modify += "<br/>\n<a href=/fb/path/" + id + ">Path to here</a>" + 
+					"<br/>\n<a href=/fb/outline/" + id + ">Outline from here</a>" + 
+					"<br/>\n<a href=/fb/complete/" + id + ">View story so far</a>";
+		} catch (FBLoginException e) {
+			addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
+		}
 			
-			try {
-				User currentUser = Accounts.getUser(token);
-				if (ep.authorId.equals(currentUser.id)) modify = "<br/><br/><a href=../modify/" + id + ">Modify your episode</a>";
-				else if (currentUser.level >= ((byte)10)) modify = "<br/><br/><a href=../modify/" + id + ">Modify as moderator</a>";
-				addEp = "<a href=../add/" + id + ">Add a new episode</a>";
-			} catch (FBLoginException e) {
-				addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
-			}
+		if (DB.READ_ONLY_MODE) addEp = "";
 			
-			if (DB.READ_ONLY_MODE) addEp = "";
+		String author = escape(ep.authorName);
+		if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
 			
-			String author = escape(ep.authorName);
-			if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
+		String editHTML = "";
+		if (!ep.date.equals(ep.editDate)) {
+			editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + escape(ep.editorName) + "</a> on " + escape(Strings.outputDateFormat(ep.editDate));
+		}
 			
-			String editHTML = "";
-			if (!ep.date.equals(ep.editDate)) {
-				editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + escape(ep.editorName) + "</a> on " + escape(Strings.outputDateFormat(ep.editDate));
-			}
-			
-			return Strings.getFile("story.html", token)
-					.replace("$TITLE", escape(ep.title))
-					.replace("$BODY", formatBody(ep.body))
-					.replace("$AUTHOR", author)
-					.replace("$PARENTID", (ep.parentId == null) ? ".." : escape(ep.parentId))
-					.replace("$ID", id)
-					.replace("$DATE", escape(Strings.outputDateFormat(ep.date)) + editHTML)
-					.replace("$MODIFY", modify)
-					.replace("$ADDEP", addEp)
-					.replace("$CHILDREN", sb.toString());
+		return Strings.getFile("story.html", token)
+				.replace("$TITLE", escape(ep.title))
+				.replace("$BODY", formatBody(ep.body))
+				.replace("$AUTHOR", author)
+				.replace("$PARENTID", (ep.parentId == null) ? ".." : escape(ep.parentId))
+				.replace("$ID", id)
+				.replace("$DATE", escape(Strings.outputDateFormat(ep.date)) + editHTML)
+				.replace("$MODIFY", modify)
+				.replace("$ADDEP", addEp)
+				.replace("$SORTORDER", sortOrder)
+				.replace("$CHILDREN", sb.toString());
 	}
 	
 	
@@ -179,9 +190,14 @@ public class Story {
 		for (Episode child : list) if (child != null){
 			//sb.append("<p>");
 			for (int i=minDepth; i<child.depth; ++i) sb.append("&nbsp;");
-			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a><br />\n");
+			sb.append(child.depth + ". " + epLine(child));
 		}
 		return Strings.getFile("outline.html", token).replace("$ID", rootId).replace("$CHILDREN", sb.toString());
+	}
+	
+	public static String epLine(Episode ep) {
+		if (ep.isLegacy) return "<a href=/fb/get/" + ep.id + ">" + escape(ep.link) + "</a> (" + escape(ep.authorName) + ")<br/>\n";
+		else return "<a href=/fb/get/" + ep.id + ">" + escape(ep.link) + "</a> (<a href=/fb/user/" + ep.authorId + ">" + escape(ep.authorName) + "</a>)<br/>\n";
 	}
 	
 	public static String getPath(Cookie token, String id) {
@@ -194,7 +210,7 @@ public class Story {
 		ArrayList<Episode> list = new ArrayList<>(Arrays.asList(path));
 		StringBuilder sb = new StringBuilder();
 		for (Episode child : list) if (child != null){
-			sb.append(child.depth + ". <a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a><br />\n");
+			sb.append(child.depth + ". " + epLine(child));
 		}
 		return Strings.getFile("path.html", token).replace("$ID", id).replace("$CHILDREN", sb.toString());
 	}
@@ -347,7 +363,6 @@ public class Story {
 		try {
 			ep = DB.getEp(id);
 		} catch (DBException e) {
-			//return notFound(id);
 			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
 		}
 		User user;
@@ -362,6 +377,60 @@ public class Story {
 				.replace("$BODY", escape(ep.body))
 				.replace("$LINK", escape(ep.link))
 				.replace("$ID", id);
+	}
+	
+	public static String flagForm(String id, Cookie token) {
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e) {
+			return Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id);
+		}
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			return Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that");
+		}
+		if (user.id.equals(ep.authorId)) return Strings.getFile("generic.html",token).replace("$EXTRA", "You cannot flag your own episode.");
+		return Strings.getFile("flagform.html", token)
+				.replace("$TITLE", escape(ep.title))
+				.replace("$ID", id);
+	}
+	
+	public static void flagPost(String id, String flag, Cookie token) throws EpisodeException {
+		Episode ep;
+		try {
+			ep = DB.getEp(id);
+		} catch (DBException e1) {
+			//throw new EpisodeException(notFound(id));
+			throw new EpisodeException(Strings.getFile("generic.html", token).replace("$EXTRA", "Not found: " + id));
+		}
+		User user;
+		try {
+			user = Accounts.getUser(token);
+		} catch (FBLoginException e) {
+			throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You must be logged in to do that"));
+		}
+		if (user.id.equals(ep.authorId)) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "You cannot flag your own episode."));
+		
+		flag = flag.trim();
+		
+		if (flag.length() == 0) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "Reason cannot be empty."));
+		if (flag.length() > 100000) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "Reason cannot be longer than 100000 (" + flag.length() + ")."));
+		
+		ArrayList<String> list = new ArrayList<>();
+		for (String r : replacers) {
+			if (flag.contains(r)) list.add(r);
+		}
+		if (list.size() > 0) throw new EpisodeException(Strings.getFile("generic.html",token).replace("$EXTRA", "Flag text may not contain the following: " + list));
+		
+		try {
+			DB.flagEp(id, user.id, flag);
+		} catch (DBException e) {
+			throw new EpisodeException(Strings.getFile("failure.html", token).replace("$EXTRA", e.getMessage()));
+		}
+		
 	}
 	
 	/**
@@ -439,7 +508,7 @@ public class Story {
 		return (errors.length() > 0) ? errors.toString() : null;
 	}
 	public static final List<String> replacers = 
-			Collections.unmodifiableList(new ArrayList<>(Arrays.asList("$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$EPISODES","$STYLE")));
+			Collections.unmodifiableList(new ArrayList<>(Arrays.asList("$SORTORDER","$ACCOUNT","$TITLE","$AUTHOR","$DATE","$MODIFY","$BODY","$CHILDREN","$ID","$PARENTID","$LINK","$EXTRA","$EPISODES","$STYLE")));
 	
 	/**
 	 * Escape body text and convert markdown/formatting to HTML

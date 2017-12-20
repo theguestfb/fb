@@ -2,6 +2,7 @@
 <head>
 <script src='https://www.google.com/recaptcha/api.js'></script>
 <title>Fiction Branches</title>
+<link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/$STYLE.css">
 <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
 <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
@@ -33,6 +34,12 @@ $ACCOUNT
 		<p>
 			Author name: <input type= "text" name= "author" size="100" placeholder="author"/><br/>
 			(this will be displayed on episodes you author, and can be changed later)
+		</p>
+		<p>
+			Username: <input type= "text" name= "username" size="100" placeholder="username"/><br/>
+			Must be at least 4 characters long but no longer than 32 characters<br/>
+			Allowed characters: uppercase letters (A-Z), lowercase letters (a-z), numbers (0-9), underscores (_), hypens (-), and periods (.)<br/>
+			(you can use this to log in, will be used for your public profile URL, and can <em>never</em> be changed)
 		</p>
 		<p><div class="g-recaptcha" data-sitekey="6LentjMUAAAAAKxdhu6M382vJAh90s0vA-Dpnieg"></div></p>
 		<input type= "submit" value= "Submit"/>

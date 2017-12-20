@@ -12,9 +12,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import fb.Accounts;
+import fb.Accounts.FBLoginException;
 import fb.Story;
 import fb.db.DB;
 import fb.db.DB.DBException;
@@ -72,9 +75,36 @@ public class GetStuff {
 	@GET
 	@Path("get/{id}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response get(@PathParam("id") String id, @QueryParam("sort") String sortString, @CookieParam("fbtoken") Cookie fbtoken) {
+	public Response get(@PathParam("id") String id, @QueryParam("sort") String sortString, @CookieParam("fbchildsort") Cookie fbchildsort, @CookieParam("fbtoken") Cookie fbtoken) {
 		int sort = 0;
+		NewCookie newCookie = null;
 		if (sortString != null) switch (sortString.toLowerCase()) {
+		case "oldest":
+			sort = 0;
+			newCookie = new NewCookie("fbchildsort", sortString.toLowerCase());
+			return Response.seeOther(createURI("/fb/get/" + id)).cookie(newCookie).build();
+		case "newest":
+			sort = 1;
+			newCookie = new NewCookie("fbchildsort", sortString.toLowerCase());
+			return Response.seeOther(createURI("/fb/get/" + id)).cookie(newCookie).build();
+		case "mostfirst":
+			sort = 2;
+			newCookie = new NewCookie("fbchildsort", sortString.toLowerCase());
+			return Response.seeOther(createURI("/fb/get/" + id)).cookie(newCookie).build();
+		case "leastfirst":
+			sort = 3;
+			newCookie = new NewCookie("fbchildsort", sortString.toLowerCase());
+			return Response.seeOther(createURI("/fb/get/" + id)).cookie(newCookie).build();
+		case "random":
+			sort = 4;
+			newCookie = new NewCookie("fbchildsort", sortString.toLowerCase());
+			return Response.seeOther(createURI("/fb/get/" + id)).cookie(newCookie).build();
+		default:
+			return Response.seeOther(createURI("/fb/get/" + id)).build();
+		} else if (fbchildsort != null) switch (fbchildsort.getValue().toLowerCase()) {
+		case "oldest":
+			sort = 0;
+			break;
 		case "newest":
 			sort = 1;
 			break;
@@ -209,6 +239,11 @@ public class GetStuff {
 	@Path("outline/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response outline(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id, @QueryParam("depth") String depth) {
+		try {
+			Accounts.getUser(fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok(Strings.getFile("generic.html",fbtoken).replace("$EXTRA", "You must be logged in to do that")).build();
+		}
 		return Response.ok(Story.getOutline(fbtoken, id, depth)).build();
 	}
 	
@@ -216,6 +251,11 @@ public class GetStuff {
 	@Path("path/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response path(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id) {
+		try {
+			Accounts.getUser(fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok(Strings.getFile("generic.html",fbtoken).replace("$EXTRA", "You must be logged in to do that")).build();
+		}
 		return Response.ok(Story.getPath(fbtoken, id)).build();
 	}
 	
@@ -223,6 +263,11 @@ public class GetStuff {
 	@Path("complete/{id}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getcomplete(@CookieParam("fbtoken") Cookie fbtoken, @PathParam("id") String id) {
+		try {
+			Accounts.getUser(fbtoken);
+		} catch (FBLoginException e) {
+			return Response.ok(Strings.getFile("generic.html",fbtoken).replace("$EXTRA", "You must be logged in to do that")).build();
+		}
 		System.out.println("Complete request : " + id);
 		String ret = Story.getCompleteHTML(fbtoken, id);
 		System.out.println("Complete return  : " + id);
@@ -236,5 +281,12 @@ public class GetStuff {
 	@Produces(MediaType.TEXT_HTML)
 	public Response formatting(@CookieParam("fbtoken") Cookie fbtoken) {
 		return Response.ok(Strings.getFile("formatting.html", fbtoken)).build();
+	}
+	
+	@GET
+	@Path("faq")
+	@Produces(MediaType.TEXT_HTML)
+	public Response faq(@CookieParam("fbtoken") Cookie fbtoken) {
+		return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", Story.formatBody(Strings.getFile("faq.md", null)))).build();
 	}
 }
