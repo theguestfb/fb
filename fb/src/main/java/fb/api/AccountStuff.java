@@ -14,7 +14,6 @@ import javax.ws.rs.core.Response;
 
 import fb.Accounts;
 import fb.Accounts.FBLoginException;
-import fb.db.DB;
 import fb.objects.User;
 import fb.util.Strings;
 
@@ -58,7 +57,7 @@ public class AccountStuff {
 	@Path("login")
 	@Produces(MediaType.TEXT_HTML)
 	public Response login(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		Strings.log("Someone's on the login page");
 		if (Accounts.isLoggedIn(fbtoken)) return Response.ok("Already logged in").build();
@@ -69,7 +68,7 @@ public class AccountStuff {
 	@Path("logout")
 	@Produces(MediaType.TEXT_HTML)
 	public Response logout(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		Accounts.logout(fbtoken);
 		return Response.seeOther(GetStuff.createURI("/fb")).build();
@@ -87,7 +86,7 @@ public class AccountStuff {
 	@Produces(MediaType.TEXT_HTML)
 	public Response loginpost(@FormParam("email") String email, @FormParam("password") String password,
 			@FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		Strings.log("Login attempt: " + email);
 		if (Strings.RECAPTCHA) {
@@ -119,7 +118,7 @@ public class AccountStuff {
 	@Path("confirmaccount/{token}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response confirmaccount(@PathParam("token") String token) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		Strings.log("Verifying: " + token);
 		return Response.ok(Accounts.verify(token)).build();
@@ -134,7 +133,7 @@ public class AccountStuff {
 	@Path("createaccount")
 	@Produces(MediaType.TEXT_HTML)
 	public Response createaccount(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Accounts.isLoggedIn(fbtoken)) return Response.ok("Already looged in").build();
 		return Response.ok(Strings.getFile("createaccountform.html", fbtoken).replace("$EXTRA", "")).build();
@@ -154,7 +153,7 @@ public class AccountStuff {
 	@Produces(MediaType.TEXT_HTML)
 	public Response createaccountpost(@FormParam("email") String email, @FormParam("username") String username, @FormParam("password") String password, @FormParam("password2") String password2, 
 			@FormParam("author") String author, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", null).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -171,7 +170,7 @@ public class AccountStuff {
 	@Path("useraccount")
 	@Produces(MediaType.TEXT_HTML)
 	public Response useraccount(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		User user;
@@ -188,7 +187,7 @@ public class AccountStuff {
 	@Path("changeauthor")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changeauthor(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		return Response.ok(Strings.getFile("changeauthorform.html", fbtoken).replace("$EXTRA", "")).build();
@@ -198,7 +197,7 @@ public class AccountStuff {
 	@Path("changeauthorpost")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changeauthorpost(@FormParam("author") String author, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -220,7 +219,7 @@ public class AccountStuff {
 	@Path("changetheme")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changetheme(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		return Response.ok(Strings.getFile("changethemeform.html", fbtoken).replace("$EXTRA", "").replace("$THEMES", Strings.getSelectThemes())).build();
@@ -230,7 +229,7 @@ public class AccountStuff {
 	@Path("changethemepost")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changethemepost(@FormParam("theme") String theme, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -252,7 +251,7 @@ public class AccountStuff {
 	@Path("changebio")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changebio(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		String bio;
@@ -268,7 +267,7 @@ public class AccountStuff {
 	@Path("changebiopost")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changebiopost(@FormParam("bio") String bio, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -290,7 +289,7 @@ public class AccountStuff {
 	@Path("changepassword")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changepassword(@CookieParam("fbtoken") Cookie fbtoken) {	
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA","You must be logged in to do that")).build();
 		return Response.ok(Strings.getFile("changepasswordform.html", fbtoken).replace("$EXTRA", "")).build();
@@ -300,7 +299,7 @@ public class AccountStuff {
 	@Path("changepasswordpost")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changepasswordpost(@FormParam("newpass") String newpass, @FormParam("newpass2") String newpass2 ,@FormParam("password") String password, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -322,7 +321,7 @@ public class AccountStuff {
 	@Path("changeemail")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changeemail(@CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (!Accounts.isLoggedIn(fbtoken)) return Response.ok("You must be logged in to do that").build();
 		return Response.ok(Strings.getFile("changeemailform.html", fbtoken).replace("$EXTRA", "")).build();
@@ -332,7 +331,7 @@ public class AccountStuff {
 	@Path("changeemailpost")
 	@Produces(MediaType.TEXT_HTML)
 	public Response changeemailpost(@FormParam("email") String email, @FormParam("password") String password, @CookieParam("fbtoken") Cookie fbtoken, @FormParam("g-recaptcha-response") String google) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		if (Strings.RECAPTCHA) {
 			String response = Strings.checkGoogle(google);
@@ -354,7 +353,7 @@ public class AccountStuff {
 	@Path("confirmemailchange/{token}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response confirmemailchange(@PathParam("token") String token, @CookieParam("fbtoken") Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
+		if (Strings.READ_ONLY_MODE) return Response.ok(Strings.getFile("generic.html", fbtoken).replace("$EXTRA", "This site is currently in read-only mode.")).build();
 		
 		Strings.log("Verifying: " + token);
 		return Response.ok(Accounts.verifyNewEmail(token, fbtoken)).build();

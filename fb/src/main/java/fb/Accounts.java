@@ -237,7 +237,7 @@ public class Accounts {
 	 * @return HTML
 	 */
 	public static String getAccount(Cookie fbtoken) {
-		if (DB.READ_ONLY_MODE) return "";
+		if (Strings.READ_ONLY_MODE) return "";
 		String notLoggedIn = "<div class=\"loginstuff\"><a href=/fb/createaccount>Create account</a><br/><a href=/fb/login>Log in</a></div>";
 		if (fbtoken == null) return notLoggedIn;
 		String token = fbtoken.getValue();

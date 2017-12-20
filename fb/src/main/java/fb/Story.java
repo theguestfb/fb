@@ -99,7 +99,7 @@ public class Story {
 			addEp = "<a href=/fb/login>Log in</a> or <a href=/fb/createaccount>create an account</a> to add episodes";
 		}
 			
-		if (DB.READ_ONLY_MODE) addEp = "";
+		if (Strings.READ_ONLY_MODE) addEp = "";
 			
 		String author = escape(ep.authorName);
 		if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";

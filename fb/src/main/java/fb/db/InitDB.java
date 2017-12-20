@@ -19,8 +19,7 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-import javax.persistence.RollbackException;
-
+import org.hibernate.Session;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
@@ -37,62 +36,49 @@ import fb.util.Strings;
  * initialize the database
  */
 public class InitDB {
-	
-	public static void asdf() {
-		DB.session.beginTransaction();
-		DBEpisode ep = new DBEpisode();
-		ep.setId("1");
-		try {
-			DB.session.save(ep);
-			DB.session.getTransaction().commit();
-			System.out.println("Commit successful");
-		} catch (RollbackException e) {
-			DB.session.getTransaction().rollback();
-		}
-	}
 
-	
 	private static final boolean PRINT_EPISODES_ADDED = true; // enable to print each episode's newid to stdout when it is added to the db
-	
-	
+
 	private static Random r = new Random();
 	
 	
 	public static void countDB()  {
+		try (Session session = DB.sessionFactory.openSession()) {
 			/***** Count episodes in DB ******/
 			long stop, start = System.nanoTime();
 
-			int c = count("4");
+			int c = count(session, "4");
 			stop = System.nanoTime();
 			System.out.println("finished tfog: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("3");
+			c = count(session, "3");
 			stop = System.nanoTime();
 			System.out.println("finished af: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("1");
+			c = count(session, "1");
 			stop = System.nanoTime();
 			System.out.println("finished forum: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
 
-			c = count("2");
+			c = count(session, "2");
 			stop = System.nanoTime();
 			System.out.println("finished yawyw: " + c + " " + (((double) (stop - start)) / 1000000000.0));
 			start = System.nanoTime();
+		}
 	}
 	
 
 	public static void doImport() throws DBException  {
-		
 		
 		try (Scanner in = new Scanner(System.in)) {
 			
 			System.out.println("enter root password:");
 			String rootpw = in.nextLine();
 			
-			DB.session.beginTransaction();
+			try (Session session = DB.sessionFactory.openSession()) {
+			session.beginTransaction();
 
 			DBUser user = new DBUser();
 			user.setEmail("admin@fictionbranches.net");
@@ -101,8 +87,9 @@ public class InitDB {
 			user.setAuthor("FB Admin");
 			user.setPassword(BCrypt.hashpw(rootpw, BCrypt.gensalt(10)));
 			user.setBio("Fiction Branches Admin Account");
-			DB.session.save(user);
-			DB.session.getTransaction().commit();
+			session.save(user);
+			session.getTransaction().commit();
+			}
 									
 			System.out.println("Enter your email address:");
 			String email = in.nextLine();
@@ -152,6 +139,7 @@ public class InitDB {
 		DB.closeSession();
 		Strings.log("Fin");
 		System.exit(0);
+		
 	}
 	
 	public static void exportTemp() throws DBException {
@@ -187,13 +175,15 @@ public class InitDB {
 			if (DB.emailInUse(tempUser.getEmail())) userId = DB.getUserByEmail(tempUser.getEmail()).id;
 			else userId = DB.addUser(tempUser.getId(), tempUser.getEmail(), tempUser.getHashedPassword(), tempUser.getAuthor());
 
-			DBUser user = DB.session.get(DBUser.class, userId);
+			try (Session session = DB.sessionFactory.openSession()) {
+			DBUser user = session.get(DBUser.class, userId);
 			user.setBio(tempUser.getBio());
 			user.setLevel(tempUser.getLevel());
 			user.setTheme(tempUser.getTheme());
-			DB.session.beginTransaction();
-			DB.session.merge(user);
-			DB.session.getTransaction().commit();
+			session.beginTransaction();
+			session.merge(user);
+			session.getTransaction().commit();
+			}
 			
 			for (TempUser.TempEpisode tempEp : tempUser.getEpisodes()) {
 				tempEp.setAuthorId(userId);
@@ -207,24 +197,24 @@ public class InitDB {
 				return Comparators.keyStringComparator.compare(a.getId(), b.getId());
 			}
 		});
-		
+		try (Session session = DB.sessionFactory.openSession()) {
 		for (TempUser.TempEpisode tempEp : episodes) {
 			boolean skipEp;
 			try {
-				DB.getEp(tempEp.getId());
+				if (DB.getEpById(session, tempEp.getId()) == null) throw new DBException("skip");
 				skipEp = true;
 				System.out.println("Skipping existing tempEp: " + tempEp.getId());
 			} catch (DBException e) {
 				skipEp = false;
 			}
 			if (skipEp) continue;
-			DBUser user = DB.getUserById(tempEp.getAuthorId());
+			DBUser user = DB.getUserById(session, tempEp.getAuthorId());
 			DBEpisode ep = new DBEpisode();
 			System.out.println("Adding temp ep: " + tempEp.getId());
 			DBEpisode parent;
 			try {
 				String parentId = getParentId(tempEp.getId());
-				parent = DB.getEpById(parentId);
+				parent = DB.getEpById(session, parentId);
 			} catch (StringIndexOutOfBoundsException e) {
 				parent = null; // this is a root episode
 			}
@@ -243,29 +233,32 @@ public class InitDB {
 			ep.setChildren(new ArrayList<DBEpisode>());
 			ep.setDepth(tempEp.getDepth());
 			user.getEpisodes().add(ep);
-			DB.session.beginTransaction();
-			DB.session.save(ep);
-			if (parent != null) DB.session.merge(parent);
-			DB.session.merge(user);
-			DB.session.getTransaction().commit();
+			session.beginTransaction();
+			session.save(ep);
+			if (parent != null) session.merge(parent);
+			session.merge(user);
+			session.getTransaction().commit();
+		}
 		}
 	}
 	
 	//private static ArrayList<String> rootIdList = new ArrayList<>();
 	
 	public static void generateChildCounts() throws DBException {
+		try (Session session = DB.sessionFactory.openSession()) {
 		Episode[] roots = DB.getRoots();
 		for (Episode ep : roots) {
 			String rootId = ep.id;
-			DB.session.beginTransaction();
+			session.beginTransaction();
 			long start = System.nanoTime();
-			generateChildCounts(rootId);
+			generateChildCounts(session, rootId);
 			long stop = System.nanoTime();
 			Strings.log("Generated child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + rootId);
 			start = System.nanoTime();
-			DB.session.getTransaction().commit();
+			session.getTransaction().commit();
 			stop = System.nanoTime();
 			Strings.log("Persisted child counts: " + ((((double)(stop-start))/1000000000.0)) + " " + rootId);
+		}
 		}
 	}
 		
@@ -275,27 +268,29 @@ public class InitDB {
 	 * @return number of episodes (including root) in tree
 	 * @throws IOException 
 	 */
-	static int count(String id) {
-		DBEpisode ep = DB.getEpById( id);
+	static int count(Session session, String id) {
+		DBEpisode ep = DB.getEpById(session, id);
 
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
-		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(child.getId());
+		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) sum+=count(session, child.getId());
 		return sum;
+		
 	}
 	
-	private static int generateChildCounts(String id) {
-		DBEpisode ep = DB.getEpById(id);
+	private static int generateChildCounts(Session session, String id) {
+		
+		DBEpisode ep = DB.getEpById(session, id);
 		if (ep == null) System.err.println("null");
 		int sum = 1; // count this episode
 		if (ep.getChildren() != null) for (DBEpisode child : ep.getChildren()) {
-			int x = generateChildCounts(child.getId());
+			int x = generateChildCounts(session, child.getId());
 			sum+=x;
 		}
-		//DB.session.beginTransaction(); // Do this in generateChildCounts() instead (the method that calls this method)
+		//session.beginTransaction(); // Do this in generateChildCounts() instead (the method that calls this method)
 		ep.setChildCount(sum);
-		DB.session.merge(ep);
-		//DB.session.getTransaction().commit();
+		session.merge(ep);
+		//session.getTransaction().commit();
 		if (PRINT_EPISODES_ADDED) System.out.println("Generated child counts: " + id);
 		return sum;
 	}
@@ -304,14 +299,15 @@ public class InitDB {
 		Strings.log("Importing " + story);
 		String dirPath = System.getProperty("user.home") + "/fbscrape/" + story + "/";
 		
-		DB.session.beginTransaction();
+		try (Session session = DB.sessionFactory.openSession()) {
+		session.beginTransaction();
 		
 		DBUser newUser = new DBUser();
 		newUser.setEmail(null);
 		newUser.setLevel((byte)1);
 		{
 			String id = genLegacyID();
-			while (DB.session.get(DBUser.class, id) != null) id = genLegacyID();
+			while (session.get(DBUser.class, id) != null) id = genLegacyID();
 			newUser.setId(id);
 		}
 		Strings.log("Loading root of " + story);
@@ -328,9 +324,10 @@ public class InitDB {
 		newUser.setPassword("disabled");
 		newUser.setBio("");
 				
-		DB.session.save(rootEp);
-		DB.session.save(newUser);
-		DB.session.getTransaction().commit();
+		session.save(rootEp);
+		session.save(newUser);
+		session.getTransaction().commit();
+		}
 		
 		Strings.log("Loading index of " + story);
 		TreeMap<String, String> map = new TreeMap<>(Comparators.keyStringComparator); // <"1-2-3","01234someguy">
@@ -359,13 +356,13 @@ public class InitDB {
 			public void run() {
 				Strings.log("Persisting legacy IDs for " + story);
 				for (String newId : map.keySet()) {
-					DB.session.beginTransaction();
+					session.beginTransaction();
 					String oldId = map.get(newId);
 					DBLegacyId legacy = new DBLegacyId();
 					legacy.setId(oldId);
 					legacy.setNewId(newId);
-					DB.session.save(legacy);
-					DB.session.getTransaction().commit();
+					session.save(legacy);
+					session.getTransaction().commit();
 					if (PRINT_EPISODES_ADDED) System.out.println("Added legacyid " + newId);
 				}
 			}
@@ -425,7 +422,8 @@ public class InitDB {
 		Strings.log("Persisting episodes for " + story); 
 		for (String newId : map.keySet()) {
 			if (missingEpisodes.contains(newId)) { // episode needs to exist but doesn't, so make it from scratch
-				DB.session.beginTransaction();
+				try (Session session = DB.sessionFactory.openSession()){
+				session.beginTransaction();
 				String childId = newId;
 				String parentId = getParentId(childId);
 				DBEpisode child = new DBEpisode();
@@ -433,7 +431,7 @@ public class InitDB {
 				
 				{
 					String id = genLegacyID();
-					while (DB.session.get(DBUser.class, id) != null) id = genLegacyID();
+					while (session.get(DBUser.class, id) != null) id = genLegacyID();
 					user.setId(id);
 				}
 				child.setTitle("(Empty)");
@@ -451,7 +449,7 @@ public class InitDB {
 				user.setPassword("disabled");
 				user.setBio("");
 				Strings.log("ID must exist, but doesn't: " + childId);
-				DBEpisode parent = DB.getEpById( parentId);
+				DBEpisode parent = DB.getEpById(session, parentId);
 
 				child.setId(childId);
 				child.setParent(parent);
@@ -459,25 +457,27 @@ public class InitDB {
 				child.setDepth(keyToArr(child.getId()).length);
 				
 				parent.getChildren().add(child);
-				DB.session.save(user);
-				DB.session.save(child);
-				DB.session.merge(parent);
-				DB.session.getTransaction().commit();
+				session.save(user);
+				session.save(child);
+				session.merge(parent);
+				session.getTransaction().commit();
 				if (PRINT_EPISODES_ADDED) System.out.println("Added episode " + child.getId());
+				}	
 			} else { // otherwise, load the episode from file
 				File f = new File(dirPath + map.get(newId));
-				DB.session.beginTransaction();
+				try (Session session = DB.sessionFactory.openSession()) {
+				session.beginTransaction();
 				String childId = newId;
 				String parentId = getParentId(childId);
 				LegacyEpisodeContainer epCont = readEpisode(f);
 				DBEpisode child = epCont.ep;
 								
-				DBEpisode parent = DB.getEpById( parentId);
+				DBEpisode parent = DB.getEpById(session, parentId);
 				
 				DBUser user = new DBUser();
 				{
 					String id = genLegacyID();
-					while (DB.session.get(DBUser.class, id) != null) id = genLegacyID();
+					while (session.get(DBUser.class, id) != null) id = genLegacyID();
 					user.setId(id);
 				}
 				user.setAuthor(epCont.author);
@@ -497,11 +497,12 @@ public class InitDB {
 				user.getEditors().add(child);
 				
 				parent.getChildren().add(child);
-				DB.session.save(user);
-				DB.session.save(child);
-				DB.session.merge(parent);
-				DB.session.getTransaction().commit();
+				session.save(user);
+				session.save(child);
+				session.merge(parent);
+				session.getTransaction().commit();
 				if (PRINT_EPISODES_ADDED) System.out.println("Added episode " + child.getId());
+				}
 			}
 		}
 	}

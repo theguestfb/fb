@@ -27,12 +27,10 @@ import fb.util.Strings;
 
 public class DB {
 	
-	public static boolean READ_ONLY_MODE = false; //set this value to the default (will revert to this value after restarts)
-	
 	public static final String ROOT_ID = "fbadministrator1";
 	
-	private static final SessionFactory sessionFactory;
-	static final Session session;
+	static final SessionFactory sessionFactory;
+	//static final Session session;
 	//private static final Connection con;
 	private static Object dbLock = new Object();
 	static {
@@ -46,7 +44,7 @@ public class DB {
 
 			StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
 			sessionFactory = configuration.buildSessionFactory(builder.build());
-			session = sessionFactory.openSession();
+			//session = sessionFactory.openSession();
 			/*try { // I wish this didn't have to be a separate connection, but idk how to do it differently without using HQL instead of SQL, which I don't care to learn
 				con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/fictionbranches", "fictionbranches", "");
 			} catch (SQLException e) {
@@ -58,7 +56,7 @@ public class DB {
 	
 	public static void closeSession() {
 		synchronized (dbLock) {
-		session.close();
+		//session.close();
 		sessionFactory.close();
 		/*try {
 			con.close();
@@ -87,15 +85,15 @@ public class DB {
 	 * @param id
 	 * @return null if episodes does not exist
 	 */
-	static DBEpisode getEpById(String id) {
-		synchronized (dbLock) {
+	static DBEpisode getEpById(Session session, String id) {
+		//synchronized (dbLock) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
 			Root<DBEpisode> root = query.from(DBEpisode.class);
 			query.select(root).where(cb.equal(root.get("id"), id));
 			DBEpisode result = session.createQuery(query).uniqueResult();
 			return result;
-		}
+		//}
 	}
 	
 	/**
@@ -103,15 +101,26 @@ public class DB {
 	 * @param id
 	 * @return
 	 */
-	static DBUser getUserById(String id) {
-		synchronized (dbLock) {
+	static DBUser getUserById(Session session, String id) {
+		//synchronized (dbLock) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
 			Root<DBUser> root = query.from(DBUser.class);
 			query.select(root).where(cb.equal(root.get("id"), id));
 			DBUser result = session.createQuery(query).uniqueResult();
 			return result;
-		}
+		//}
+	}
+	
+	static DBUser getUserByEmail(Session session, String email) {
+		//synchronized (dbLock) {
+			CriteriaBuilder cb = session.getCriteriaBuilder();
+			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
+			Root<DBUser> root = query.from(DBUser.class);
+			query.select(root).where(cb.equal(root.get("email"), email));
+			DBUser result = session.createQuery(query).uniqueResult();
+			return result;
+		//}
 	}
 	
 	/**
@@ -121,7 +130,7 @@ public class DB {
 	 * @throws DBException if email not in use
 	 */
 	public static User getUserByEmail(String email) throws DBException {
-		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
 			Root<DBUser> root = query.from(DBUser.class);
@@ -133,7 +142,7 @@ public class DB {
 	}
 	
 	static TempUser[] getTempUsers() {
-		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBUser> query = cb.createQuery(DBUser.class);
 			Root<DBUser> root = query.from(DBUser.class);
@@ -163,8 +172,9 @@ public class DB {
 	 */
 	public static Episode addEp(String id, String link, String title, String body, String authorId, Date date) throws DBException {
 		synchronized (dbLock) {
-			DBEpisode parent = getEpById(id);
-			DBUser author = getUserById( authorId);
+		try (Session session = sessionFactory.openSession()){
+			DBEpisode parent = getEpById(session, id);
+			DBUser author = getUserById(session, authorId);
 
 			if (parent == null) throw new DBException("Not found: " + id);
 			if (author == null) throw new DBException("Author does not exist");
@@ -188,8 +198,6 @@ public class DB {
 			author.getEditors().add(child);
 			
 			author.getEpisodes().add(child);
-		
-			session.beginTransaction();
 			
 			parent.getChildren().add(child);
 			
@@ -202,13 +210,20 @@ public class DB {
 				parents.add(parent);
 			}
 			
-			session.save(child);
-			for (DBEpisode parEp : parents) session.merge(parEp);
-			session.merge(author);
+			try {
+				session.beginTransaction();
+				session.save(child);
+				for (DBEpisode parEp : parents) session.merge(parEp);
+				session.merge(author);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
-			session.getTransaction().commit();
 			Episode ret = new Episode(child);
 			return ret;
+		}
 		}
 	}
 	
@@ -227,7 +242,8 @@ public class DB {
 	 */
 	public static Episode addRootEp(String link, String title, String body, String authorId, Date date) throws DBException {
 		synchronized (dbLock) {
-			DBUser author = getUserById( authorId);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser author = getUserById(session, authorId);
 			
 			Episode[] roots = getRoots();
 
@@ -237,10 +253,7 @@ public class DB {
 			child = new DBEpisode();
 			
 			String childId = "" + (Integer.parseInt(roots[roots.length-1].id) + 1);
-			if (childId.length() > 4096) {
-				session.getTransaction().commit();
-				throw new DBException("Cannot create new episode, ID string longer than 4096 characters<br/>\n" + childId);
-			}
+
 			child.setId(childId);
 			child.setDepth(InitDB.keyToArr(childId).length);
 			
@@ -257,14 +270,19 @@ public class DB {
 			
 			author.getEpisodes().add(child);
 		
-			session.beginTransaction();
-			
-			session.save(child);
-			session.merge(author);
+			try {
+				session.beginTransaction();
+				session.save(child);
+				session.merge(author);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
 			Strings.log(String.format("New: <%s> %s %s", author, title, child.getId()));
-			session.getTransaction().commit();
 			Episode ret = new Episode(child);
 			return ret;
+		}
 		}
 	}
 	
@@ -278,9 +296,10 @@ public class DB {
 	 */
 	public static void modifyEp(String id, String link, String title, String body, String editorId) throws DBException {
 		synchronized (dbLock) {
-			DBEpisode ep = getEpById(id);
+		try (Session session = sessionFactory.openSession()) {
+			DBEpisode ep = getEpById(session, id);
 			if (ep == null) throw new DBException("Not found: " + id);
-			DBUser editor = getUserById( editorId);
+			DBUser editor = getUserById(session, editorId);
 			if (editor == null) throw new DBException("Editor not found: " + editorId);
 			DBUser oldEditor = ep.getEditor();
 			ep.setTitle(title);
@@ -290,12 +309,18 @@ public class DB {
 			ep.setEditor(editor);
 			editor.getEditors().add(ep);
 			oldEditor.getEditors().remove(ep);
-			session.beginTransaction();
-			session.merge(ep);
-			session.merge(oldEditor);
-			session.merge(editor);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(ep);
+				session.merge(oldEditor);
+				session.merge(editor);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
 			Strings.log(String.format("Modified: <%s> %s", title, ep.getId()));
+		}
 		}
 	}
 	
@@ -308,8 +333,8 @@ public class DB {
 	 * @throws DBException if episode id does not exist
 	 */
 	public static Episode getEp(String id) throws DBException {
-		synchronized (dbLock) {
-			DBEpisode ep = getEpById(id);
+		try (Session session = sessionFactory.openSession()) {
+			DBEpisode ep = getEpById(session, id);
 			if (ep == null) throw new DBException("Not found: " + id);
 			Episode ret = new Episode(ep);
 			return ret;
@@ -323,7 +348,7 @@ public class DB {
 	 * @throws DBException if id not found
 	 */
 	public static Episode getEpByLegacyId(String oldId) throws DBException {	
-		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 		CriteriaBuilder cb = session.getCriteriaBuilder();
 		CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
 		Root<DBEpisode> root = query.from(DBEpisode.class);
@@ -350,7 +375,7 @@ public class DB {
 	 * @throws DBException
 	 */
 	public static Episode[] getRecents(int rootId, int num) throws DBException {
-		synchronized(dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 
 			if (rootId != 0) DB.getEp(""+rootId);
 			
@@ -376,7 +401,7 @@ public class DB {
 	}
 	
 	public static Episode[] getOutline(String rootId, int maxDepth) throws DBException {
-		synchronized(dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			
 			int minDepth = DB.getEp(rootId).depth;
 			maxDepth += minDepth;
@@ -404,8 +429,8 @@ public class DB {
 	
 	public static Episode[] getPath(String id) throws DBException {
 		Episode[] episodeList;
-		synchronized (dbLock) {
-			if (DB.getEpById(id) == null) throw new DBException("Not found: " + id);
+		try (Session session = sessionFactory.openSession()) {
+			if (getEpById(session, id) == null) throw new DBException("Not found: " + id);
 			
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
@@ -438,7 +463,7 @@ public class DB {
 	}
 	
 	public static Episode[] getRoots() throws DBException {
-		synchronized(dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBEpisode> query = cb.createQuery(DBEpisode.class);
@@ -470,8 +495,9 @@ public class DB {
 	 */
 	public static String addUser(String username, String email, String password, String author) throws DBException {
 		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 		
-			if (emailInUse(email)) throw new DBException("Email " + email + " is already in use");
+			if (getUserByEmail(session, email) != null) throw new DBException("Email " + email + " is already in use");
 			
 			DBUser user = new DBUser();
 		
@@ -482,11 +508,17 @@ public class DB {
 			user.setPassword(password);
 			user.setId(username);
 			
-			session.beginTransaction();
-			session.save(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.save(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
 			
 			return username;
+		}
 		}
 	}
 	
@@ -498,12 +530,19 @@ public class DB {
 	 */
 	public static void changeAuthorName(String id, String newAuthor) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setAuthor(newAuthor);
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 	
@@ -515,13 +554,20 @@ public class DB {
 	 */
 	public static void changeTheme(String id, String newTheme) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setTheme(newTheme);
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
 		}
+	}
 	}
 	
 	/**
@@ -532,12 +578,19 @@ public class DB {
 	 */
 	public static void changeBio(String id, String newBio) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setBio(newBio);
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 	
@@ -550,12 +603,19 @@ public class DB {
 	 */
 	public static void changePassword(String id, String newPassword) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setPassword(newPassword);
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 	
@@ -567,12 +627,19 @@ public class DB {
 	 */
 	public static void changeUserLevel(String id, byte newLevel) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			user.setLevel(newLevel);
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 
@@ -582,27 +649,25 @@ public class DB {
 	 * @throws DBException if id does not exist
 	 */
 	public static User getUser(String id) throws DBException {
-		synchronized (dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User id does not exist");
 			return new User(user);
 		}
 	}
 	
 	public static boolean emailInUse(String email) {
-		synchronized(dbLock) {
-			try {
-				getUserByEmail(email);
-			} catch (DBException e) {
-				return false;
-			}
-			return true;
+		try {
+			getUserByEmail(email);
+		} catch (DBException e) {
+			return false;
 		}
+		return true;
 	}
 	
 	public static boolean usernameInUse(String username) {
-		synchronized(dbLock) {
-			return getUserById(username) != null;
+		try (Session session = sessionFactory.openSession()) {
+			return getUserById(session, username) != null;
 		}
 	}
 	
@@ -614,15 +679,21 @@ public class DB {
 	 */
 	public static void changeEmail(String userId, String email) throws DBException {
 		synchronized (dbLock) {
-			DBUser user = getUserById( userId);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, userId);
 			if (user == null) throw new DBException("User id does not exist");
 			if (emailInUse(email)) throw new DBException("New email " + email + " already in use");
 
 			user.setEmail(email);
-			
-			session.beginTransaction();
-			session.merge(user);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.merge(user);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 	
@@ -635,8 +706,8 @@ public class DB {
 	 */
 	public static boolean checkPassword(String id, String password) throws DBException {
 		String hashedPassword;
-		synchronized(dbLock) {
-			DBUser user = getUserById( id);
+		try (Session session = sessionFactory.openSession()) {
+			DBUser user = getUserById(session, id);
 			if (user == null) throw new DBException("User does not exist");
 			if (user.getEmail() == null) throw new DBException("You may not log in to a legacy account");
 			hashedPassword = user.getPassword();
@@ -653,8 +724,9 @@ public class DB {
 	public static void flagEp(String episodeId, String authorId, String flagText) throws DBException {
 		Date flagDate;
 		synchronized (dbLock) {
-			DBEpisode parent = getEpById(episodeId);
-			DBUser author = getUserById(authorId);
+		try (Session session = sessionFactory.openSession()) {
+			DBEpisode parent = getEpById(session, episodeId);
+			DBUser author = getUserById(session, authorId);
 
 			if (parent == null) throw new DBException("Episode not found: " + episodeId);
 			if (author == null) throw new DBException("Author does not exist");
@@ -672,13 +744,17 @@ public class DB {
 			
 			flagDate = flag.getDate();
 			
-		
-			session.beginTransaction();
-			
-			session.save(flag);
-			session.merge(parent);
-			session.merge(author);
-			session.getTransaction().commit();
+			try {
+				session.beginTransaction();
+				session.save(flag);
+				session.merge(parent);
+				session.merge(author);
+				session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 		Strings.log(String.format("Flag: <%s> %s %s", authorId, episodeId, flagDate));
 	}
@@ -686,6 +762,7 @@ public class DB {
 	public static FlaggedEpisode[] getFlags() {
 		FlaggedEpisode[] ret;
 		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			CriteriaBuilder cb = session.getCriteriaBuilder();
 			CriteriaQuery<DBFlaggedEpisode> query = cb.createQuery(DBFlaggedEpisode.class);
 			Root<DBFlaggedEpisode> root = query.from(DBFlaggedEpisode.class);
@@ -694,6 +771,7 @@ public class DB {
 			List<DBFlaggedEpisode> result = session.createQuery(query).list();
 			ret = new FlaggedEpisode[result.size()];
 			for (int i=0; i<ret.length; ++i) ret[i] = new FlaggedEpisode(result.get(i));
+		}
 		}
 		Arrays.sort(ret, new Comparator<FlaggedEpisode>() {
 			public int compare(FlaggedEpisode a, FlaggedEpisode b) {
@@ -704,7 +782,7 @@ public class DB {
 	}
 	
 	public static FlaggedEpisode getFlag(long id) throws DBException {
-		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			DBFlaggedEpisode flag = session.get(DBFlaggedEpisode.class, id);
 			if (flag == null) throw new DBException("Flag not found: " + id);
 			return new FlaggedEpisode(flag);
@@ -713,17 +791,24 @@ public class DB {
 	
 	public static void clearFlag(long id) throws DBException {
 		synchronized (dbLock) {
+		try (Session session = sessionFactory.openSession()) {
 			DBFlaggedEpisode flag = session.get(DBFlaggedEpisode.class, id);
 			if (flag == null) throw new DBException("Flag not found: " + id);
 			DBEpisode ep = flag.getEpisode();
 			DBUser user = flag.getUser();
 			ep.getFlags().remove(flag);
 			user.getFlags().remove(flag);
-			session.beginTransaction();
-			session.delete(flag);
-			session.merge(ep);
-			session.merge(user);
+			try {
+				session.beginTransaction();
+				session.delete(flag);
+				session.merge(ep);
+				session.merge(user);
 			session.getTransaction().commit();
+			} catch (Exception e) {
+				session.getTransaction().rollback();
+				throw new DBException("Database error");
+			}
+		}
 		}
 	}
 	

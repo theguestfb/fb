@@ -45,12 +45,14 @@ import com.google.gson.Gson;
 
 import fb.Accounts;
 import fb.Accounts.FBLoginException;
-import fb.db.DB;
 import fb.json.JsonCaptchaResponse;
 
 public class Strings {
 	
-	public static final String BASE_DIR = "/opt/fb" + (DB.READ_ONLY_MODE?"ro":""); // no trailing /
+	public static boolean READ_ONLY_MODE = false; //set this value to the default (will revert to this value after restarts)
+
+	public static final String BASE_DIR = "/opt/fb" + (Strings.READ_ONLY_MODE?"ro":""); // no trailing /
+	
 	public static final boolean RECAPTCHA = false;
 	
 	private static ConcurrentHashMap<String,String> files = new ConcurrentHashMap<>();
@@ -265,15 +267,15 @@ public class Strings {
 								Accounts.logActiveSessions();
 								break; 
 							case "read_only_true":
-								if (DB.READ_ONLY_MODE == false) {
+								if (Strings.READ_ONLY_MODE == false) {
 									Strings.log("Enabling read-only");
-									DB.READ_ONLY_MODE = true;
+									Strings.READ_ONLY_MODE = true;
 								} else Strings.log(command + ": read-only was already enabled");
 								break;
 							case "read_only_false":
-								if (DB.READ_ONLY_MODE == true) {
+								if (Strings.READ_ONLY_MODE == true) {
 									Strings.log("Disabling read-only");
-									DB.READ_ONLY_MODE = false;
+									Strings.READ_ONLY_MODE = false;
 								} else Strings.log(command + ": read-only was already disabled");
 								break;
 							default:
@@ -423,4 +425,5 @@ public class Strings {
 			} else f.delete();
 		}
 	}
+
 }
