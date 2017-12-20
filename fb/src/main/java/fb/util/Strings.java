@@ -50,7 +50,7 @@ import fb.json.JsonCaptchaResponse;
 
 public class Strings {
 	
-	public static final String BASE_DIR = "/opt/fb"; // no trailing /
+	public static final String BASE_DIR = "/opt/fb" + (DB.READ_ONLY_MODE?"ro":""); // no trailing /
 	public static final boolean RECAPTCHA = false;
 	
 	private static ConcurrentHashMap<String,String> files = new ConcurrentHashMap<>();

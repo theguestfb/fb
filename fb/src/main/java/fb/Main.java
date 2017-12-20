@@ -116,7 +116,7 @@ public class Main {
 		resourceConfig.register(CharsetResponseFilter.class);
 		Strings.log("Starting server");
 		try {
-			GrizzlyHttpServerFactory.createHttpServer(UriBuilder.fromUri("http://0.0.0.0/").port(8080).build(), resourceConfig).start();
+			GrizzlyHttpServerFactory.createHttpServer(UriBuilder.fromUri("http://0.0.0.0/").port(DB.READ_ONLY_MODE?8081:8080).build(), resourceConfig).start();
 			Strings.log("Server started");
 		} catch (IllegalArgumentException | UriBuilderException | IOException  e) {
 			Strings.log("Could not start server: " + e.getMessage());
