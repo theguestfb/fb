@@ -6,6 +6,11 @@ body {
 	margin: 5px;
 	padding: 5px;
 }
+
+h1, h2, h3 { 
+        clear: both;
+}
+
 .topcorner{
 	float: right;
 	text-align: center;
