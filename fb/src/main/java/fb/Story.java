@@ -161,7 +161,7 @@ public class Story {
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href='/fb/get/" + child.id + "'>" + escape(child.link) + "</a>" + " by " + escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
+			sb.append("<p class='hentry'><a class='url entry-title' href='/fb/get/" + child.id + "'>" + escape(child.link) + "</a>" + " by <span='author'>" + escape(child.authorName) + "</span> on <time class='published'>" + Strings.outputDateFormat(child.date) + "</time> " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 	}
