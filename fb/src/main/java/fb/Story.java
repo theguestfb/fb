@@ -81,7 +81,7 @@ public class Story {
 			break;
 		}
 		for (ChildEpisode child : children) {
-			sb.append("<p><a href=" + child.id + ">" + escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
+			sb.append("<p><a href='" + child.id + "' rel='child'>" + escape(child.link) + "</a>" + " (" + child.count + ")" + "</p>\n");
 		}
 		
 		String addEp, modify="";			
@@ -102,11 +102,11 @@ public class Story {
 		if (Strings.READ_ONLY_MODE) addEp = "";
 			
 		String author = escape(ep.authorName);
-		if (!ep.isLegacy) author = "<a href=/fb/user/" + ep.authorId + ">" + author + "</a>";
+		if (!ep.isLegacy) author = "<a href='/fb/user/" + ep.authorId + "' rel='author'>" + author + "</a>";
 			
 		String editHTML = "";
 		if (!ep.date.equals(ep.editDate)) {
-			editHTML = "<br/>\nEpisode last modified by <a href=/fb/user/" + ep.editorId + ">" + escape(ep.editorName) + "</a> on " + escape(Strings.outputDateFormat(ep.editDate));
+			editHTML = "<br/>\nEpisode last modified by <a href='/fb/user/" + ep.editorId + "' rel='editor'>" + escape(ep.editorName) + "</a> on " + escape(Strings.outputDateFormat(ep.editDate));
 		}
 			
 		return Strings.getFile("story.html", token)
@@ -161,7 +161,7 @@ public class Story {
 			} catch (DBException e) {
 				return Strings.getFile("generic.html", token).replace("$EXTRAS", "Recents appears to be broken (you should never see this), tell Phoenix you saw this");
 			}
-			sb.append("<p><a href=/fb/get/" + child.id + ">" + escape(child.link) + "</a>" + " by " + escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
+			sb.append("<p><a href='/fb/get/" + child.id + "'>" + escape(child.link) + "</a>" + " by " + escape(child.authorName) + " on " + Strings.outputDateFormat(child.date) + " " + story + "</p>\n");
 		}
 		return Strings.getFile("recents.html", token).replace("$CHILDREN", sb.toString());
 	}
@@ -196,8 +196,8 @@ public class Story {
 	}
 	
 	public static String epLine(Episode ep) {
-		if (ep.isLegacy) return "<a href=/fb/get/" + ep.id + ">" + escape(ep.link) + "</a> (" + escape(ep.authorName) + ")<br/>\n";
-		else return "<a href=/fb/get/" + ep.id + ">" + escape(ep.link) + "</a> (<a href=/fb/user/" + ep.authorId + ">" + escape(ep.authorName) + "</a>)<br/>\n";
+		if (ep.isLegacy) return "<a href='/fb/get/" + ep.id + "'>" + escape(ep.link) + "</a> (" + escape(ep.authorName) + ")<br/>\n";
+		else return "<a href='/fb/get/" + ep.id + "'>" + escape(ep.link) + "</a> (<a href='/fb/user/" + ep.authorId + "' class='author'>" + escape(ep.authorName) + "</a>)<br/>\n";
 	}
 	
 	public static String getPath(Cookie token, String id) {
