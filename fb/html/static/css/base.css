@@ -1,0 +1,24 @@
+body {
+	font-family: 'Helvetica', 'Arial', sans-serif;
+	word-wrap: break-word;
+	background-color: #4e98fc;
+	color: #000000;
+	margin: 5px;
+	padding: 5px;
+}
+.topcorner{
+	float: right;
+	text-align: center;
+	margin: 2px;
+	padding: 2px;
+}
+textarea{
+	font-family: 'Helvetica', 'Arial', sans-serif;
+	width:100%;
+}
+.loginstuff{
+    border: solid 2px;
+}
+.livechat{
+    border: solid 2px;
+}

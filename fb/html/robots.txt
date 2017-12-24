@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /fb/complete/
+Disallow: /fb/path/
+Disallow: /fb/outline/
+Disallow: /fb/feed/
